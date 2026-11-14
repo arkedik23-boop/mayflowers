@@ -1,0 +1,15 @@
+[Unit]
+Description=May Flowers Telegram bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=bot
+WorkingDirectory=/opt/mayflowers_bot
+EnvironmentFile=/opt/mayflowers_bot/.env
+ExecStart=/usr/bin/python3 /opt/mayflowers_bot/bot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

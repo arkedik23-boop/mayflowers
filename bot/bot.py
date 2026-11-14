@@ -35,6 +35,7 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 ADMIN_IDS = [int(x) for x in os.environ.get("ADMIN_IDS", "").replace(" ", "").split(",") if x]
 INTAKE_KEY = os.environ.get("INTAKE_KEY", "")
 PORT = int(os.environ.get("PORT", "8080"))
+BIND_HOST = os.environ.get("BIND_HOST", "0.0.0.0")  # на сервере за Caddy: 127.0.0.1
 ACCEPT_TIMEOUT = int(os.environ.get("ACCEPT_TIMEOUT", "600"))  # секунд на «Принять»
 PAYOUT_SHARE = float(os.environ.get("PAYOUT_SHARE", "0.7"))  # доля студии, если сайт не прислал сумму
 DB_PATH = os.environ.get("DB_PATH", "mayflowers.db")
@@ -1252,7 +1253,7 @@ def main():
         log.warning("WEBAPP_URL пуст: у клиентов не будет кнопки магазина")
     threading.Thread(target=expire_loop, daemon=True).start()
     threading.Thread(target=reminder_loop, daemon=True).start()
-    server = ThreadingHTTPServer(("0.0.0.0", PORT), Intake)
+    server = ThreadingHTTPServer((BIND_HOST, PORT), Intake)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     log.info("@%s запущен, приём заказов на :%s/api/orders", BOT_USERNAME, PORT)
     poll_loop()
