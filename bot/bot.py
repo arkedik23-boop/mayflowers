@@ -44,6 +44,8 @@ WEBAPP_URL = os.environ.get("WEBAPP_URL", "")  # адрес сайта (мини
 TZ_OFFSET = float(os.environ.get("TZ_OFFSET", "4"))  # часовой пояс для напоминаний, Ереван = +4
 REMIND_HOUR = int(os.environ.get("REMIND_HOUR", "11"))  # во сколько слать напоминания
 INIT_MAX_AGE = 86400  # подпись мини-апки действительна сутки
+MANAGER_CONTACT = os.environ.get("MANAGER_CONTACT", "")  # например @mayflowers_manager или +374 ...
+CATALOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "catalog.json")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("mayflowers")
@@ -528,7 +530,9 @@ HELP_ADMIN = (
     "/retry ID — заново раздать заказ всем студиям\n"
     "/cancel ID — отменить заказ\n"
     "/test — тестовый заказ\n"
-    "/myid — ваш Telegram ID"
+    "/myid — ваш Telegram ID\n"
+    "/reply ID текст — ответить клиенту (ID приходит вместе с его сообщением)\n"
+    "/menu — показать меню клиента (проверить, как его видят люди)"
 )
 HELP_STUDIO = (
     "Сюда приходят заявки May Flowers.\n"
@@ -597,6 +601,11 @@ def handle_message(m):
         if handle_admin(chat, cmd, arg):
             return
 
+    action = client_button(text)
+    if action and not studio_by_chat(chat):
+        client_action(chat, m, action)
+        return
+
     s = studio_by_chat(chat)
     if s and cmd == "/active":
         rows = q("SELECT * FROM orders WHERE studio_id=? AND status IN ('accepted','built','courier') "
@@ -614,23 +623,235 @@ def handle_message(m):
     elif is_admin(uid):
         send(chat, HELP_ADMIN)
     elif cmd == "/orders":
-        rows = q("SELECT * FROM orders WHERE client_chat=? ORDER BY created DESC LIMIT 10", (chat,))
-        o = {"lang": m.get("from", {}).get("language_code")}
-        if not rows:
-            send(chat, esc(CLIENT[lang_of(o)]["none"]), shop_button(o))
-        else:
-            send(chat, "\n".join(f"{esc(r['id'])} · {esc(STATUS_TEXT.get(r['status'], r['status']))}" for r in rows))
+        client_action(chat, m, "orders")
+    elif cmd == "/catalog":
+        client_action(chat, m, "catalog")
+    elif text and not text.startswith("/"):
+        client_free_text(chat, m, text)
     else:
         client_hello(chat, m)
 
 
-def client_hello(chat, m):
-    o = {"lang": m.get("from", {}).get("language_code")}
-    lg = lang_of(o)
+# ---------------------------------------------------------------- меню и каталог для клиентов
+
+MENU = {
+    "ru": [["💐 Каталог", "📦 Мои заказы"], ["🤍 Букет добра", "📞 Связаться"], ["ℹ️ Как это работает"]],
+    "en": [["💐 Catalog", "📦 My orders"], ["🤍 Kindness bouquet", "📞 Contact us"], ["ℹ️ How it works"]],
+    "hy": [["💐 Կատալոգ", "📦 Իմ պատվերները"], ["🤍 Բարության ծաղկեփունջ", "📞 Կապ"], ["ℹ️ Ինչպես է աշխատում"]],
+}
+MENU_ACTIONS = ["catalog", "orders", "kind", "contact", "how"]
+CL = {
+    "ru": {
+        "menu_hint": "Меню внизу 👇",
+        "pick": "Выберите повод:",
+        "cats": {"all": "Все букеты", "bd": "День рождения", "love": "Любовь", "thanks": "Спасибо",
+                 "mom": "Маме", "sorry": "Извинение", "premium": "Премиум"},
+        "order": "🛒 Заказать", "back": "↩️ Поводы", "empty": "Тут пока пусто.",
+        "how": "Как это работает:\n\n1. Выберите букет в каталоге или в магазине.\n2. Укажите адрес, дату и время, текст открытки.\n3. Студия-партнёр соберёт букет, и я пришлю вам его фото до доставки.\n4. Курьер привезёт цветы по Еревану, от 60 минут.",
+        "kind": "🤍 Букет добра\n\nДобавьте к любому заказу мини-букет за $15. Маис или наша команда вручит его незнакомому человеку на улицах Еревана от вашего имени, а вы получите видео вручения.\n\nОтметить можно при оформлении заказа.",
+        "contact": "Напишите вопрос прямо сюда, менеджер ответит в этом чате.",
+        "contact_direct": "Или напрямую: {c}",
+        "sent": "Передал менеджеру, ответим здесь же 🌸",
+        "cab": "📦 Открыть кабинет",
+        "manager": "💬 Менеджер May Flowers:",
+    },
+    "en": {
+        "menu_hint": "Menu is below 👇",
+        "pick": "Choose an occasion:",
+        "cats": {"all": "All bouquets", "bd": "Birthday", "love": "Love", "thanks": "Thank you",
+                 "mom": "For mom", "sorry": "Sorry", "premium": "Premium"},
+        "order": "🛒 Order", "back": "↩️ Occasions", "empty": "Nothing here yet.",
+        "how": "How it works:\n\n1. Pick a bouquet in the catalog or the shop.\n2. Enter the address, date, time and card text.\n3. A partner studio builds the bouquet and I send you a photo before delivery.\n4. A courier delivers across Yerevan, from 60 minutes.",
+        "kind": "🤍 Kindness bouquet\n\nAdd a mini bouquet to any order for $15. Mais or our team hands it to a stranger on the streets of Yerevan on your behalf, and you get the video.\n\nTick it at checkout.",
+        "contact": "Write your question right here, a manager will reply in this chat.",
+        "contact_direct": "Or directly: {c}",
+        "sent": "Sent to a manager, we will reply here 🌸",
+        "cab": "📦 Open my account",
+        "manager": "💬 May Flowers manager:",
+    },
+    "hy": {
+        "menu_hint": "Մենյուն ներքևում է 👇",
+        "pick": "Ընտրեք առիթը՝",
+        "cats": {"all": "Բոլոր ծաղկեփնջերը", "bd": "Ծննդյան օր", "love": "Սեր", "thanks": "Շնորհակալություն",
+                 "mom": "Մայրիկին", "sorry": "Ներողություն", "premium": "Պրեմիում"},
+        "order": "🛒 Պատվիրել", "back": "↩️ Առիթներ", "empty": "Այստեղ դեռ դատարկ է։",
+        "how": "Ինչպես է աշխատում՝\n\n1. Ընտրեք ծաղկեփունջ կատալոգում կամ խանութում։\n2. Նշեք հասցեն, ամսաթիվը, ժամը և բացիկի տեքստը։\n3. Գործընկեր ստուդիան կհավաքի ծաղկեփունջը, և ես կուղարկեմ լուսանկարը առաքումից առաջ։\n4. Առաքիչը կբերի Երևանով մեկ՝ 60 րոպեից։",
+        "kind": "🤍 Բարության ծաղկեփունջ\n\nԱվելացրեք ցանկացած պատվերին մինի ծաղկեփունջ $15-ով։ Մաիսը կամ մեր թիմը այն կհանձնի անծանոթ մարդու Երևանի փողոցներում ձեր անունից, իսկ դուք կստանաք տեսանյութը։\n\nՆշեք պատվիրելիս։",
+        "contact": "Գրեք ձեր հարցն այստեղ, մենեջերը կպատասխանի այս չատում։",
+        "contact_direct": "Կամ ուղղակի՝ {c}",
+        "sent": "Փոխանցեցի մենեջերին, կպատասխանենք այստեղ 🌸",
+        "cab": "📦 Բացել կաբինետը",
+        "manager": "💬 May Flowers մենեջեր՝",
+    },
+}
+CAT_ORDER = ["all", "bd", "love", "thanks", "mom", "sorry", "premium"]
+CATALOG = {"rate_amd": 390, "items": []}
+
+
+def load_catalog():
+    """Каталог берём с сайта (catalog.json рядом с index.html), иначе из файла рядом с ботом."""
+    global CATALOG
     if WEBAPP_URL:
-        send(chat, esc(CLIENT[lg]["hello"]), shop_button(o))
+        try:
+            with urllib.request.urlopen(urllib.parse.urljoin(WEBAPP_URL, "catalog.json"), timeout=15) as r:
+                data = json.loads(r.read().decode())
+            if data.get("items"):
+                CATALOG = data
+                return
+        except Exception as e:
+            log.warning("catalog from site failed: %s", e)
+    try:
+        with open(CATALOG_FILE, encoding="utf-8") as f:
+            CATALOG = json.load(f)
+    except (OSError, ValueError) as e:
+        log.warning("catalog file failed: %s", e)
+
+
+def catalog_loop():
+    while True:
+        time.sleep(900)
+        load_catalog()
+
+
+def user_lang(frm):
+    return lang_of({"lang": (frm or {}).get("language_code")})
+
+
+def shop_url(**params):
+    if not WEBAPP_URL:
+        return ""
+    if not params:
+        return WEBAPP_URL
+    return WEBAPP_URL + ("&" if "?" in WEBAPP_URL else "?") + urllib.parse.urlencode(params)
+
+
+def menu_markup(lg):
+    return {"keyboard": [[{"text": t} for t in row] for row in MENU[lg]], "resize_keyboard": True, "is_persistent": True}
+
+
+def client_button(text):
+    for lg, rows in MENU.items():
+        flat = [t for row in rows for t in row]
+        if text in flat:
+            return MENU_ACTIONS[flat.index(text)]
+    return None
+
+
+def client_hello(chat, m):
+    lg = user_lang(m.get("from"))
+    if WEBAPP_URL:
+        send(chat, esc(CLIENT[lg]["hello"]), [[(CLIENT[lg]["open"], "webapp:" + shop_url())]])
     else:
         send(chat, esc(CLIENT[lg]["soon"]))
+    tg("sendMessage", chat_id=chat, text=CL[lg]["menu_hint"], reply_markup=menu_markup(lg))
+
+
+def client_action(chat, m, action):
+    lg = user_lang(m.get("from"))
+    L = CL[lg]
+    if action == "catalog":
+        send(chat, L["pick"], cat_menu(lg))
+    elif action == "orders":
+        rows = q("SELECT * FROM orders WHERE client_chat=? ORDER BY created DESC LIMIT 10", (chat,))
+        btn = [[(L["cab"], "webapp:" + shop_url(v="cabinet"))]] if WEBAPP_URL else None
+        if not rows:
+            send(chat, esc(CLIENT[lg]["none"]), [[(CLIENT[lg]["open"], "webapp:" + shop_url())]] if WEBAPP_URL else None)
+        else:
+            send(chat, "\n".join(f"{esc(r['id'])} · {esc(STATUS_TEXT.get(r['status'], r['status']))}" for r in rows), btn)
+    elif action == "how":
+        send(chat, esc(L["how"]), [[(CLIENT[lg]["open"], "webapp:" + shop_url())]] if WEBAPP_URL else None)
+    elif action == "kind":
+        send(chat, esc(L["kind"]), [[(CLIENT[lg]["open"], "webapp:" + shop_url())]] if WEBAPP_URL else None)
+    elif action == "contact":
+        txt = L["contact"] + ("\n" + L["contact_direct"].format(c=MANAGER_CONTACT) if MANAGER_CONTACT else "")
+        send(chat, esc(txt))
+
+
+def client_free_text(chat, m, text):
+    frm = m.get("from") or {}
+    name = " ".join(x for x in [frm.get("first_name"), frm.get("last_name")] if x) or "клиент"
+    user = f" @{esc(frm['username'])}" if frm.get("username") else ""
+    notify_admins(f"💬 Сообщение от {esc(name)}{user} (ID <code>{chat}</code>):\n{esc(text[:3000])}\n\n"
+                  f"Ответить: <code>/reply {chat} </code>текст")
+    send(chat, esc(CL[user_lang(frm)]["sent"]))
+
+
+def cat_items(cat):
+    items = CATALOG.get("items", [])
+    if cat == "premium":
+        items = [i for i in items if i.get("usd", 0) >= 150]
+    elif cat != "all":
+        items = [i for i in items if cat in i.get("occ", [])]
+    return sorted(items, key=lambda i: i.get("usd", 0))
+
+
+def cat_menu(lg):
+    labels = CL[lg]["cats"]
+    rows, row = [], []
+    for c in CAT_ORDER:
+        row.append((labels[c], f"cat:{c}:0"))
+        if len(row) == 2:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
+    return rows
+
+
+def card(lg, cat, idx):
+    items = cat_items(cat)
+    if not items:
+        return None
+    idx %= len(items)
+    it = items[idx]
+    name = it["n"].get(lg) or it["n"]["ru"]
+    comp = it["k"].get(lg) or it["k"]["ru"]
+    amd = round(it["usd"] * CATALOG.get("rate_amd", 390) / 100) * 100
+    amd_txt = f"{amd:,}".replace(",", "\u00a0")
+    caption = (f"<b>{esc(name)}</b>\n{esc(comp)}\n\n<b>${it['usd']}</b> · {amd_txt} ֏"
+               + f"\n\n{esc(CL[lg]['cats'][cat])} · {idx + 1} / {len(items)}")
+    nav = [("◀️", f"cat:{cat}:{idx - 1}"), (f"{idx + 1}/{len(items)}", "cat:noop"), ("▶️", f"cat:{cat}:{idx + 1}")]
+    rows = [nav]
+    if WEBAPP_URL:
+        rows.append([(CL[lg]["order"], "webapp:" + shop_url(add=it["id"]))])
+    rows.append([(CL[lg]["back"], "cat:menu")])
+    photo = urllib.parse.urljoin(WEBAPP_URL, it["img"]) if WEBAPP_URL else None
+    return photo, caption, rows
+
+
+def catalog_callback(cb, answer):
+    chat = cb["message"]["chat"]["id"]
+    mid = cb["message"]["message_id"]
+    lg = user_lang(cb.get("from"))
+    parts = cb.get("data", "").split(":")
+    if parts[1] == "noop":
+        answer()
+        return
+    if parts[1] == "menu":
+        if cb["message"].get("photo"):
+            tg("deleteMessage", chat_id=chat, message_id=mid)
+            send(chat, CL[lg]["pick"], cat_menu(lg))
+        else:
+            edit(chat, mid, CL[lg]["pick"], cat_menu(lg))
+        answer()
+        return
+    cat = parts[1] if parts[1] in CAT_ORDER else "all"
+    idx = int(parts[2]) if len(parts) > 2 and parts[2].lstrip("-").isdigit() else 0
+    c = card(lg, cat, idx)
+    if not c:
+        answer(CL[lg]["empty"])
+        return
+    photo, caption, rows = c
+    if cb["message"].get("photo") and photo:
+        tg("editMessageMedia", chat_id=chat, message_id=mid,
+           media={"type": "photo", "media": photo, "caption": caption, "parse_mode": "HTML"}, reply_markup=kb(rows))
+    else:
+        if photo:
+            tg("deleteMessage", chat_id=chat, message_id=mid)
+            tg("sendPhoto", chat_id=chat, photo=photo, caption=caption, parse_mode="HTML", reply_markup=kb(rows))
+        else:
+            edit(chat, mid, caption, rows)
+    answer()
 
 
 def handle_admin(chat, cmd, arg):
@@ -713,6 +934,16 @@ def handle_admin(chat, cmd, arg):
                     send(s["chat_id"], f"❌ Заказ {esc(arg)} отменён. Не собирайте его.")
             notify_client(arg, "cancelled")
             send(chat, f"Заказ {esc(arg)} отменён.")
+    elif cmd == "/reply":
+        target, _, msg = arg.partition(" ")
+        if not target.lstrip("-").isdigit() or not msg.strip():
+            send(chat, "Напишите так: /reply ID текст")
+            return True
+        lg = "ru"
+        r = send(int(target), esc(CL[lg]["manager"]) + "\n" + esc(msg.strip()))
+        send(chat, "Отправлено ✅" if r else "Не доставлено: клиент мог заблокировать бота.")
+    elif cmd == "/menu":
+        tg("sendMessage", chat_id=chat, text=CL["ru"]["menu_hint"], reply_markup=menu_markup("ru"))
     elif cmd == "/test":
         create_order(sample_order())
         send(chat, "Тестовый заказ создан и отправлен студиям.")
@@ -729,8 +960,11 @@ def handle_callback(cb):
     def answer(text=""):
         tg("answerCallbackQuery", callback_query_id=cb["id"], text=text)
 
+    if data.startswith("cat:"):
+        catalog_callback(cb, answer)
+        return
     if not s:
-        answer("Студия не подключена")
+        answer()
         return
     kind, _, rest = data.partition(":")
     order_id = rest.split(":")[0]
@@ -1004,8 +1238,12 @@ def main():
         raise SystemExit("Telegram не принял токен или недоступен")
     BOT_USERNAME = me["username"]
     tg("deleteWebhook")
+    load_catalog()
+    log.info("каталог: %s букетов", len(CATALOG.get("items", [])))
+    threading.Thread(target=catalog_loop, daemon=True).start()
     tg("setMyCommands", commands=[
         {"command": "start", "description": "Начать"},
+        {"command": "catalog", "description": "Каталог букетов"},
         {"command": "orders", "description": "Мои заказы"},
     ])
     if WEBAPP_URL:

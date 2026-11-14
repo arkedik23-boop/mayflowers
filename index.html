@@ -640,5 +640,11 @@ function mePhotos(){document.querySelectorAll('img[data-photo]').forEach(img=>{c
   if(PHOTO_URL[id]){img.src=PHOTO_URL[id];return}
   meApi('/api/photo/'+encodeURIComponent(id)).then(r=>r.blob()).then(b=>{PHOTO_URL[id]=URL.createObjectURL(b);document.querySelectorAll('img[data-photo="'+CSS.escape(id)+'"]').forEach(x=>x.src=PHOTO_URL[id])}).catch(()=>{})})}
 
+/* Links from the bot: ?add=ID opens checkout with that bouquet, ?v=cabinet opens the account */
+(()=>{let qp;try{qp=new URLSearchParams(location.search)}catch(e){return}
+  const add=+qp.get('add'),v=qp.get('v');
+  if(add&&PRODUCTS.find(p=>p.id===add&&!p.stem)){S.cart=[{id:add,q:1}];go('checkout')}
+  else if(v==='cabinet')go('cabinet')})();
+
 </script>
 </body></html>

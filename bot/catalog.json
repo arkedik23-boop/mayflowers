@@ -1,0 +1,389 @@
+{
+ "rate_amd": 390,
+ "items": [
+  {
+   "id": 1,
+   "usd": 120,
+   "occ": [
+    "bd",
+    "love"
+   ],
+   "img": "img/b01.jpg",
+   "n": {
+    "ru": "Тропики",
+    "en": "Tropics",
+    "hy": "Արևադարձ"
+   },
+   "k": {
+    "ru": "Протея, орхидея, геликония, монстера",
+    "en": "Protea, orchid, heliconia, monstera",
+    "hy": "Պրոտեա, խոլորձ, հելիկոնիա, մոնստերա"
+   }
+  },
+  {
+   "id": 2,
+   "usd": 65,
+   "occ": [
+    "thanks",
+    "sorry",
+    "mom"
+   ],
+   "img": "img/b02.jpg",
+   "n": {
+    "ru": "Белая тишина",
+    "en": "White calm",
+    "hy": "Սպիտակ հանգստություն"
+   },
+   "k": {
+    "ru": "Белые розы, эустома, гортензия, эвкалипт",
+    "en": "White roses, eustoma, hydrangea, eucalyptus",
+    "hy": "Սպիտակ վարդ, էուստոմա, հորտենզիա, էվկալիպտ"
+   }
+  },
+  {
+   "id": 3,
+   "usd": 75,
+   "occ": [
+    "bd",
+    "love"
+   ],
+   "img": "img/b03.jpg",
+   "n": {
+    "ru": "Лаванда",
+    "en": "Lavender",
+    "hy": "Նարդոս"
+   },
+   "k": {
+    "ru": "Розы, ирис, лаванда, эустома",
+    "en": "Roses, iris, lavender, eustoma",
+    "hy": "Վարդ, հիրիկ, նարդոս, էուստոմա"
+   }
+  },
+  {
+   "id": 4,
+   "usd": 45,
+   "occ": [
+    "bd",
+    "thanks",
+    "sorry"
+   ],
+   "img": "img/b04.jpg",
+   "n": {
+    "ru": "Солнце",
+    "en": "Sunshine",
+    "hy": "Արև"
+   },
+   "k": {
+    "ru": "Подсолнухи, гербера, альстромерия, мешковина",
+    "en": "Sunflowers, gerbera, alstroemeria, burlap",
+    "hy": "Արևածաղիկ, գերբերա, ալստրոմերիա"
+   }
+  },
+  {
+   "id": 5,
+   "usd": 110,
+   "occ": [
+    "love",
+    "mom",
+    "bd"
+   ],
+   "img": "img/b05.jpg",
+   "n": {
+    "ru": "Пионовое облако",
+    "en": "Peony cloud",
+    "hy": "Քաջվարդի ամպ"
+   },
+   "k": {
+    "ru": "Пионы, пионовидные розы, гортензия",
+    "en": "Peonies, garden roses, hydrangea",
+    "hy": "Քաջվարդ, այգու վարդ, հորտենզիա"
+   }
+  },
+  {
+   "id": 6,
+   "usd": 60,
+   "occ": [
+    "thanks",
+    "mom"
+   ],
+   "img": "img/b06.jpg",
+   "n": {
+    "ru": "Сухоцвет",
+    "en": "Dried bouquet",
+    "hy": "Չորածաղիկ"
+   },
+   "k": {
+    "ru": "Розы, пампас, лагурус, гортензия. Стоит месяцами",
+    "en": "Roses, pampas, bunny tails, hydrangea. Lasts for months",
+    "hy": "Վարդ, պամպաս, հորտենզիա: Պահպանվում է ամիսներ"
+   }
+  },
+  {
+   "id": 7,
+   "usd": 80,
+   "occ": [
+    "sorry",
+    "thanks"
+   ],
+   "img": "img/b07.jpg",
+   "n": {
+    "ru": "Ночь",
+    "en": "Night",
+    "hy": "Գիշեր"
+   },
+   "k": {
+    "ru": "Лилии, антуриум, белые розы, чёрная упаковка",
+    "en": "Lilies, anthurium, white roses, black wrap",
+    "hy": "Շուշան, անթուրիում, սպիտակ վարդ"
+   }
+  },
+  {
+   "id": 8,
+   "usd": 40,
+   "occ": [
+    "thanks",
+    "mom",
+    "bd"
+   ],
+   "img": "img/b08.jpg",
+   "n": {
+    "ru": "Полевой",
+    "en": "Wildflower",
+    "hy": "Դաշտային"
+   },
+   "k": {
+    "ru": "Дельфиниум, ромашка, кустовая роза, крафт",
+    "en": "Delphinium, chamomile, spray roses, kraft",
+    "hy": "Դելֆինիում, երիցուկ, թփային վարդ, կրաֆտ"
+   }
+  },
+  {
+   "id": 9,
+   "usd": 70,
+   "occ": [
+    "mom",
+    "bd",
+    "love"
+   ],
+   "img": "img/b09.jpg",
+   "n": {
+    "ru": "Весна",
+    "en": "Spring",
+    "hy": "Գարուն"
+   },
+   "k": {
+    "ru": "Тюльпаны, ранункулюс, розы, восковник",
+    "en": "Tulips, ranunculus, roses, waxflower",
+    "hy": "Կակաչ, ռանունկուլուս, վարդ"
+   }
+  },
+  {
+   "id": 10,
+   "usd": 70,
+   "occ": [
+    "love",
+    "bd"
+   ],
+   "img": "img/b10.jpg",
+   "n": {
+    "ru": "Классика",
+    "en": "Classic",
+    "hy": "Դասական"
+   },
+   "k": {
+    "ru": "15 красных и розовых роз, эвкалипт",
+    "en": "15 red and pink roses, eucalyptus",
+    "hy": "15 կարմիր և վարդագույն վարդ, էվկալիպտ"
+   }
+  },
+  {
+   "id": 11,
+   "usd": 260,
+   "occ": [
+    "love"
+   ],
+   "img": "img/b11.jpg",
+   "n": {
+    "ru": "Бордо",
+    "en": "Bordeaux",
+    "hy": "Բորդո"
+   },
+   "k": {
+    "ru": "Орхидеи, антуриум, калла, амарант, зеркальный куб",
+    "en": "Orchids, anthurium, calla, amaranth, mirror cube",
+    "hy": "Խոլորձ, անթուրիում, կալլա, հայելային խորանարդ"
+   }
+  },
+  {
+   "id": 12,
+   "usd": 320,
+   "occ": [
+    "love",
+    "mom"
+   ],
+   "img": "img/b12.jpg",
+   "n": {
+    "ru": "Белый праздник",
+    "en": "White occasion",
+    "hy": "Սպիտակ տոն"
+   },
+   "k": {
+    "ru": "Орхидеи, розы, гортензия, амарант, каменная ваза",
+    "en": "Orchids, roses, hydrangea, amaranth, stone vase",
+    "hy": "Խոլորձ, վարդ, հորտենզիա, քարե ծաղկաման"
+   }
+  },
+  {
+   "id": 13,
+   "usd": 150,
+   "occ": [
+    "thanks",
+    "mom"
+   ],
+   "img": "img/b13.jpg",
+   "n": {
+    "ru": "Бархат",
+    "en": "Velvet",
+    "hy": "Թավիշ"
+   },
+   "k": {
+    "ru": "Сухоцветы и стабилизированные розы в бархатной коробке",
+    "en": "Dried flowers and preserved roses in a velvet box",
+    "hy": "Չորածաղիկներ և կայունացված վարդեր թավշյա տուփում"
+   }
+  },
+  {
+   "id": 14,
+   "usd": 55,
+   "occ": [
+    "bd",
+    "thanks"
+   ],
+   "img": "img/b14.jpg",
+   "n": {
+    "ru": "Дача",
+    "en": "Country",
+    "hy": "Գյուղական"
+   },
+   "k": {
+    "ru": "Подсолнухи, гербера, львиный зев, ваза-банка",
+    "en": "Sunflowers, gerbera, snapdragon, jar vase",
+    "hy": "Արևածաղիկ, գերբերա, ծաղկաման-բանկա"
+   }
+  },
+  {
+   "id": 15,
+   "usd": 95,
+   "occ": [
+    "mom",
+    "bd"
+   ],
+   "img": "img/b15.jpg",
+   "n": {
+    "ru": "Весна в стекле",
+    "en": "Spring in glass",
+    "hy": "Գարուն ապակում"
+   },
+   "k": {
+    "ru": "Тюльпаны, гиацинт, нарцисс, мускари в прозрачной тубе",
+    "en": "Tulips, hyacinth, narcissus, muscari in a clear tube",
+    "hy": "Կակաչ, հակինթ, նարգիզ, թափանցիկ տուփում"
+   }
+  },
+  {
+   "id": 16,
+   "usd": 90,
+   "occ": [
+    "love"
+   ],
+   "img": "img/b16.jpg",
+   "n": {
+    "ru": "Сердце",
+    "en": "Heart",
+    "hy": "Սիրտ"
+   },
+   "k": {
+    "ru": "Розы, пионы, ранункулюс в коробке-сердце",
+    "en": "Roses, peonies, ranunculus in a heart box",
+    "hy": "Վարդ, քաջվարդ, ռանունկուլուս սրտաձև տուփում"
+   }
+  },
+  {
+   "id": 17,
+   "usd": 140,
+   "occ": [
+    "bd",
+    "thanks"
+   ],
+   "img": "img/b17.jpg",
+   "n": {
+    "ru": "Экзотика",
+    "en": "Exotic",
+    "hy": "Էկզոտիկա"
+   },
+   "k": {
+    "ru": "Антуриум, геликония, орхидея, монстера в чаше",
+    "en": "Anthurium, heliconia, orchid, monstera in a bowl",
+    "hy": "Անթուրիում, հելիկոնիա, խոլորձ, մոնստերա"
+   }
+  },
+  {
+   "id": 18,
+   "usd": 85,
+   "occ": [
+    "sorry",
+    "mom",
+    "thanks"
+   ],
+   "img": "img/b18.jpg",
+   "n": {
+    "ru": "Лилии",
+    "en": "Lilies",
+    "hy": "Շուշաններ"
+   },
+   "k": {
+    "ru": "Белые лилии, розы, эвкалипт в хрустальной вазе",
+    "en": "White lilies, roses, eucalyptus in a crystal vase",
+    "hy": "Սպիտակ շուշան, վարդ, էվկալիպտ բյուրեղյա ծաղկամանում"
+   }
+  },
+  {
+   "id": 19,
+   "usd": 190,
+   "occ": [
+    "love"
+   ],
+   "img": "img/b19.jpg",
+   "n": {
+    "ru": "Люкс",
+    "en": "Luxe",
+    "hy": "Լյուքս"
+   },
+   "k": {
+    "ru": "Красные розы и орхидея в акриловом боксе",
+    "en": "Red roses and orchid in an acrylic box",
+    "hy": "Կարմիր վարդեր և խոլորձ ակրիլային տուփում"
+   }
+  },
+  {
+   "id": 20,
+   "usd": 130,
+   "occ": [
+    "mom",
+    "bd",
+    "love"
+   ],
+   "img": "img/b20.jpg",
+   "n": {
+    "ru": "Шляпная коробка",
+    "en": "Hatbox",
+    "hy": "Գլխարկի տուփ"
+   },
+   "k": {
+    "ru": "Пионы, пионовидные розы, гортензия в коробке",
+    "en": "Peonies, garden roses, hydrangea in a hatbox",
+    "hy": "Քաջվարդ, այգու վարդ, հորտենզիա տուփում"
+   }
+  }
+ ]
+}
