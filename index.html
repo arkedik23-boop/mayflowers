@@ -1,0 +1,644 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style><meta property="og:title" content="MayFlowers by Mais"><meta property="og:description" content="Дари добро. Дари цветы. Доставка цветов по Еревану."><meta property="og:image" content="img/b05.jpg"><meta property="og:type" content="website"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23c9306a'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='38' text-anchor='middle' fill='white'%3EM%3C/text%3E%3C/svg%3E">
+<title>May Flowers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Цветы с доставкой по Еревану от партнёрских студий. Бренд May Flowers by Mais.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400&family=Noto+Serif+Armenian:wght@400&family=IBM+Plex+Mono:wght@500&family=Onest:wght@400;500;700;800&family=Noto+Sans+Armenian:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: asymmetric 8px grid, hairline rules instead of boxes, one family (Onest), two neutrals + one peony accent used only on the single primary action */
+:root{
+  --bg:oklch(0.975 0.006 140); --ink:oklch(0.2 0.02 150); --accent:oklch(0.56 0.2 5); --accent-fg:oklch(0.99 0 0);
+  --muted:color-mix(in oklab,var(--ink) 62%,var(--bg)); --line:color-mix(in oklab,var(--ink) 16%,var(--bg)); --tint:color-mix(in oklab,var(--ink) 5%,var(--bg));
+  --paper:oklch(1 0 0); --font:'Onest','Noto Sans Armenian',system-ui,sans-serif; --r:2px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:oklch(0.18 0.015 150); --ink:oklch(0.95 0.01 140); --accent:oklch(0.72 0.17 5); --accent-fg:oklch(0.15 0.02 5); --paper:oklch(0.18 0.015 150); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:oklch(0.18 0.015 150); --ink:oklch(0.95 0.01 140); --accent:oklch(0.72 0.17 5); --accent-fg:oklch(0.15 0.02 5); --paper:oklch(0.18 0.015 150); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,p,ol,figure{margin:0;padding:0}
+h1,h2,h3{font-weight:700;line-height:1.1;text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;transition:background-color .15s ease-out,color .15s ease-out,border-color .15s ease-out}
+a{color:var(--ink);text-underline-offset:3px;text-decoration-thickness:from-font}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+#app{max-width:1080px;margin:0 auto;min-height:100vh;padding-bottom:96px}
+body.tg #app{max-width:420px;border-inline:1px solid var(--line);padding-inline:16px}
+.label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.nums,.price,.qty,.tot{font-variant-numeric:tabular-nums}
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;padding-block:16px 8px;border-bottom:1px solid var(--line);box-shadow:0 0 0 100vmax var(--bg);clip-path:inset(0 -100vmax)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.logo{font-weight:800;font-size:20px;letter-spacing:-.03em;background:none;border:0;padding:0;min-height:44px;display:flex;align-items:baseline;gap:8px}
+.logo .wm{display:inline-flex;align-items:baseline}
+.logo em{font-family:'Bodoni Moda','Didot','Bodoni 72',Georgia,serif;font-optical-sizing:auto;font-style:normal;font-weight:400;font-size:1.14em;letter-spacing:-.01em;line-height:1;margin-right:.04em}
+.logo small{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em}
+.tabs{display:flex;gap:16px;flex-wrap:wrap}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:8px 0;min-height:44px;font-size:14px;font-weight:500;color:var(--muted)}
+.tab[aria-pressed="true"],.tab[aria-current="true"]{color:var(--ink);border-bottom-color:var(--ink);font-weight:700}
+.tools{display:flex;gap:8px 24px;align-items:center;flex-wrap:wrap;margin-left:auto}
+body.tg .tools{margin-left:0;width:100%}
+.btn{border:1px solid var(--ink);background:none;color:var(--ink);font-weight:700;font-size:14px;padding:12px 24px;border-radius:var(--r);min-height:48px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.btn:hover{background:var(--tint)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{background:color-mix(in oklab,var(--accent) 88%,var(--ink))}
+.btn.ink{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.btn.sm{min-height:44px;padding:8px 16px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.view{padding-block:48px}
+/* hero */
+.hero{display:grid;grid-template-columns:7fr 5fr;gap:48px;align-items:end;padding-bottom:48px}
+.hero h1{font-size:clamp(40px,8vw,88px);font-weight:800;letter-spacing:-.045em;line-height:1.02;margin:16px 0 24px}
+.hero h1 .h-serif,.hero h1 .h-sans{display:block}
+.hero h1 .h-serif{font-family:'Bodoni Moda','Noto Serif Armenian','Didot','Bodoni 72',Georgia,serif;font-optical-sizing:auto;font-weight:400;letter-spacing:-.025em;font-size:1.06em;line-height:1}
+.lead{color:var(--muted);max-width:46ch;margin-bottom:32px;text-wrap:pretty}
+.hero figure{display:flex;flex-direction:column;gap:8px}
+.tintbox{background:var(--tint);aspect-ratio:4/5;overflow:hidden;max-width:100%}
+.tintbox img{width:100%;height:100%;object-fit:cover;display:block}
+.steps{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-bottom:48px}
+.steps li{border-top:1px solid var(--ink);padding-top:16px;display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
+.steps b{color:var(--ink);font-size:16px}
+.sec{display:flex;flex-wrap:wrap;gap:16px;align-items:end;justify-content:space-between;border-top:1px solid var(--ink);padding-top:16px;margin-bottom:24px}
+.sec h2{font-size:24px;letter-spacing:-.02em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(224px,1fr));gap:32px 24px}
+body.tg .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px}
+.item{display:flex;flex-direction:column;gap:8px;min-width:0}
+.item h3{font-size:16px;margin-top:8px}
+.comp{font-size:14px;color:var(--muted);text-wrap:pretty;flex:1}
+.buy{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:8px}
+.price{font-weight:700;font-size:16px}
+.price small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.custom{display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;border-top:1px solid var(--ink);padding-top:24px;margin-top:64px}
+.custom h3{font-size:20px;margin-bottom:8px}
+.custom p{max-width:56ch;color:var(--muted);font-size:14px;text-wrap:pretty}
+/* forms */
+.blk{border-top:1px solid var(--ink);padding-block:16px 32px}
+.blk>.label{display:block;margin-bottom:16px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px}
+body.tg .fields{grid-template-columns:1fr}
+.full{grid-column:1/-1}
+label{display:flex;flex-direction:column;gap:8px;font-size:14px;font-weight:500;color:var(--muted)}
+input,select,textarea{background:transparent;border:1px solid var(--line);border-radius:var(--r);padding:12px;min-height:48px;font-size:16px;width:100%;color:var(--ink)}
+input:hover,select:hover,textarea:hover{border-color:var(--muted)}
+textarea{min-height:96px;resize:vertical}
+select{background:var(--bg)}
+input[aria-invalid="true"],select[aria-invalid="true"]{border-color:var(--accent);border-width:2px}
+.err{font-size:12px;font-weight:700;color:var(--accent);min-height:0;overflow-wrap:anywhere}
+.check{flex-direction:row;align-items:center;gap:16px;font-size:16px;color:var(--ink);font-weight:400;min-height:44px}
+.check input{width:20px;height:20px;min-height:20px;flex:none;accent-color:var(--ink)}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:0 24px}
+.opts label{flex-direction:row;align-items:center;gap:16px;border-bottom:1px solid var(--line);min-height:48px;color:var(--ink);font-weight:400;font-size:14px}
+.opts input{width:18px;height:18px;min-height:18px;accent-color:var(--ink)}
+.line{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:8px;border-bottom:1px solid var(--line);font-size:14px}
+.line.t{font-size:20px;font-weight:700;border-bottom:0;padding-top:16px}
+.qty{display:inline-flex;align-items:center;gap:8px;min-width:112px;justify-content:center}
+.qty button{width:44px;height:44px;border:1px solid var(--line);background:none;border-radius:var(--r);font-weight:700}
+.note{font-size:12px;color:var(--muted);text-wrap:pretty}
+.empty{padding-block:32px;color:var(--muted);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px;align-items:flex-start}
+.ord{border-top:1px solid var(--line);padding-block:16px;font-size:14px;overflow-wrap:break-word}
+.ord .h{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+.ord .h b{font-size:16px}
+.prog{display:flex;gap:4px;margin-block:16px}
+.prog i{flex:1;height:2px;background:var(--line)}.prog i.on{background:var(--ink)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.tg-win{background:var(--ink);color:var(--bg);padding:24px;max-width:480px;border-radius:var(--r)}
+.tg-win .msg{white-space:pre-wrap;font-size:14px;line-height:1.6;margin-block:16px;overflow-wrap:break-word}
+.tg-win .kb{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tg-win .kb button{background:none;border:1px solid var(--bg);color:var(--bg);border-radius:var(--r);min-height:44px;font-weight:700;font-size:14px}
+.tg-win .kb button:disabled{opacity:.3;cursor:not-allowed}
+.tg-win .label{color:inherit;opacity:.7}
+.sticky{position:fixed;left:0;right:0;bottom:0;z-index:25;padding:16px max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line);display:flex;justify-content:center}
+.sticky .btn{width:100%;max-width:480px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:var(--r);font-weight:500;font-size:14px;z-index:40;max-width:calc(100vw - 32px)}
+.done{max-width:520px;padding-block:32px}
+.done h2{font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;margin:16px 0}
+.done p{color:var(--muted);margin-bottom:32px;text-wrap:pretty}
+html,body{overflow-x:clip}
+body.tg #app{overflow-x:clip}
+.marq{margin:0 calc(50% - 50vw);overflow:hidden;background:var(--paper);color:var(--ink);padding-block:4px;border-bottom:1px solid var(--line)}
+.marq-track{display:flex;width:max-content;animation:marq 90s linear infinite}
+.marq-track span{font-family:'IBM Plex Mono','Noto Sans Armenian',ui-monospace,monospace;font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;white-space:pre;padding-right:8px}
+@keyframes marq{to{transform:translateX(-50%)}}
+.marq:hover .marq-track{animation-play-state:paused}
+.kind{display:grid;grid-template-columns:7fr 5fr;gap:24px 48px;align-items:end;border-top:1px solid var(--ink);padding-block:24px 64px}
+.kind h2{font-size:clamp(40px,7vw,72px);font-weight:800;letter-spacing:-.045em;margin-top:8px;background:linear-gradient(100deg,var(--ink) 0 55%,var(--accent) 75%,var(--ink) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kind p:not(.label){color:var(--muted);margin-bottom:24px;text-wrap:pretty}
+.kindblk{border-top-color:var(--accent)}
+@media (max-width:720px){.kind{grid-template-columns:1fr}}
+body.tg .marq{margin-inline:-16px}
+@media (prefers-reduced-motion:reduce){.marq-track{animation:none}}
+/* fridge showcase: one deliberate dark look regardless of theme */
+.fridge{margin:0 calc(50% - 50vw);background:radial-gradient(120% 70% at 50% 0%,#1b1a19 0%,#070707 70%);color:#f2efe9;padding-block:40px 32px}
+.fridge-in{max-width:1112px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.fridge .label{color:rgba(242,239,233,.55)}
+.fridge-head{display:grid;grid-template-columns:7fr 5fr;gap:24px 48px;align-items:end;margin-bottom:32px}
+.fridge h1{font-size:clamp(36px,6vw,72px);font-weight:800;letter-spacing:-.045em;line-height:1.02;margin-top:12px;color:#fff}
+.fridge .lead{color:rgba(242,239,233,.7);margin-bottom:16px}
+.btn.ghost-w{border-color:rgba(255,255,255,.45);color:#fff}.btn.ghost-w:hover{background:rgba(255,255,255,.08)}
+.case{position:relative;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:linear-gradient(180deg,#0e0e0e,#050505);overflow:hidden;padding-inline:8px}
+.case::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.045) 38%,transparent 46%,transparent 68%,rgba(255,255,255,.03) 74%,transparent 80%);pointer-events:none;z-index:3}
+.shelf{position:relative;padding-top:24px}
+.shelf-row{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));position:relative;z-index:1}
+.ledge{position:relative;z-index:2;height:14px;margin-inline:-8px;border-top:1px solid rgba(255,255,255,.35);background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.04) 30%,transparent)}
+.stem{position:relative;z-index:1;background:none;border:0;padding:0 0 12px;color:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;transition:filter .25s ease-out;min-width:0}
+.stem-img{display:block;width:100%;aspect-ratio:360/500;width:150%;max-width:none;margin-inline:-25%;transition:transform .2s ease-out}
+.stem-img img{width:100%;height:100%;object-fit:contain;display:block;transition:filter .25s ease-out}
+.stem-name{font-size:13px;font-weight:700;color:rgba(242,239,233,.8)}
+.stem-price{font-size:12px;color:rgba(242,239,233,.5);font-variant-numeric:tabular-nums}
+.has-pick .stem:not(.on){filter:brightness(.42) saturate(.7)}
+.stem:hover{filter:none!important}
+.stem.on{z-index:2}
+.stem.on .stem-img{transform:translateY(-6px)}
+.stem.on img{filter:drop-shadow(0 0 16px rgba(255,240,215,.5)) brightness(1.12)}
+.stem.on::before{content:"";position:absolute;left:50%;top:-24px;width:160%;height:calc(100% + 24px);transform:translateX(-50%);background:linear-gradient(180deg,rgba(255,246,228,.34),rgba(255,246,228,.07) 70%,transparent);clip-path:polygon(42% 0,58% 0,100% 100%,0 100%);pointer-events:none}
+.stem.on .stem-name{color:#fff}
+.stem:focus-visible{outline:2px solid #fff;outline-offset:-2px}
+.pick{display:flex;flex-wrap:wrap;align-items:center;gap:16px 32px;padding-top:24px;min-height:96px}
+.pick-name{display:flex;flex-direction:column;gap:2px;margin-right:auto}
+.pick-name b{font-size:24px;letter-spacing:-.02em;color:#fff}
+.pick-name span:last-child{color:rgba(242,239,233,.6);font-size:14px}
+.fridge .qty button{border-color:rgba(255,255,255,.3);color:#fff}
+.hint{color:rgba(242,239,233,.6)}
+.view>.fridge:first-child{margin-top:-48px;margin-bottom:48px}
+@media (max-width:720px){.view>.fridge:first-child{margin-top:-32px}}
+body.tg .fridge{margin-inline:-16px}
+body.tg .fridge-head{grid-template-columns:1fr}
+body.tg .shelf-row{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:116px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+body.tg .stem{scroll-snap-align:start}
+@media (max-width:720px){.fridge-head{grid-template-columns:1fr}.shelf-row{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:116px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.stem{scroll-snap-align:start}}
+/* ring carousel */
+.case{padding-block:16px 0}
+.stage{position:relative;height:400px}
+.stage::after{content:"";position:absolute;left:8%;right:8%;bottom:14px;height:70px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.08),transparent);pointer-events:none}
+.cr-item{--w:200px;position:absolute;left:50%;bottom:28px;width:var(--w);margin-left:calc(var(--w) / -2);transform-origin:50% 100%;transition:transform .35s cubic-bezier(.2,.8,.2,1);background:none;border:0;padding:0;color:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;will-change:transform}
+.cr-img{display:block;width:100%;aspect-ratio:360/500;position:relative}
+.cr-img>*{width:100%;height:100%;display:block;pointer-events:none;filter:brightness(var(--dim,1));transition:filter .3s ease-out}
+.cr-img img{width:100%;height:100%;object-fit:contain;display:block}
+.cr-item .stem-name{opacity:0;transition:opacity .3s ease-out}
+.cr-item.on .stem-name{opacity:1;color:#fff}
+.cr-item.on .cr-img::before{content:"";position:absolute;left:50%;top:42%;width:150%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,236,206,.5) 0%,rgba(255,214,168,.18) 40%,transparent 68%);filter:blur(4px);z-index:-1;animation:glow 2.6s ease-in-out infinite}
+.cr-item.on .cr-img>*{filter:brightness(1.12) drop-shadow(0 0 10px rgba(255,238,212,.75)) drop-shadow(0 0 28px rgba(255,214,168,.4))}
+@keyframes glow{0%,100%{opacity:.75;transform:translate(-50%,-50%) scale(.94)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.04)}}
+.cr-item:focus-visible{outline:2px solid #fff;outline-offset:4px}
+body.tg .stage{height:300px;min-width:760px}body.tg .cr-item{--w:120px}body.tg .stage-scroll{overflow-x:auto;scrollbar-width:none}
+@media (max-width:720px){.stage-scroll{overflow-x:auto;scrollbar-width:none}.stage{height:300px;min-width:760px}.cr-item{--w:120px}}
+@media (prefers-reduced-motion:reduce){.cr-item.on .cr-img::before{animation:none}}
+/* hero reel */
+.reel{position:relative;width:min(100%,360px);aspect-ratio:9/16;max-width:100%;margin-left:auto;background:var(--tint);overflow:hidden}
+.reel video{width:100%;height:100%;object-fit:cover;display:block}
+.snd{position:absolute;right:12px;bottom:12px;z-index:2;min-height:40px;padding:8px 14px;border:0;border-radius:var(--r);background:rgba(0,0,0,.55);color:#fff;font-size:13px;font-weight:700}
+.snd:hover{background:rgba(0,0,0,.75)}
+.gift figcaption{max-width:360px;margin-left:auto;text-wrap:pretty}
+@media (max-width:720px){.reel,.gift figcaption{margin-inline:auto}}
+/* telegram mini app: hide demo-only controls */
+body.tgapp #modes,body.tgapp .top [data-view="studio"],body.tgapp #cartBtn{display:none}
+.ord-photo{margin:16px 0 0;max-width:240px}
+.ord-photo img{width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;background:var(--tint);display:block}
+/* smart assistant */
+.ai{border-top:1px solid var(--ink);padding-block:24px 64px;display:flex;flex-direction:column;gap:24px}
+.ai-head{display:grid;grid-template-columns:7fr 5fr;gap:16px 48px;align-items:end}
+.ai h2{font-size:clamp(32px,5vw,56px);font-weight:800;letter-spacing:-.04em;margin-top:8px}
+.ai-d{color:var(--muted);text-wrap:pretty}
+.ai-form{display:flex;gap:8px;align-items:stretch}
+.ai-form textarea{min-height:56px;resize:vertical;flex:1}
+.ai-ex{gap:16px}
+.ai-status{color:var(--muted)}
+.ai-status::after{content:"";display:inline-block;width:8px;height:8px;margin-left:8px;border-radius:50%;background:var(--accent);animation:aip 1s ease-in-out infinite}
+@keyframes aip{50%{opacity:.2}}
+.ai-res{display:flex;flex-direction:column;gap:24px}
+.ai-reply{font-size:18px;max-width:60ch;text-wrap:pretty}
+.ai-picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.ai-card{border-left:2px solid var(--accent);padding-left:16px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;max-width:60ch}
+.ai-card p{font-size:16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:720px){.ai-head{grid-template-columns:1fr}.ai-form{flex-direction:column}.ai-picks{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px}}
+@media (prefers-reduced-motion:reduce){.ai-status::after{animation:none}}
+@media (max-width:720px){
+.top{position:relative;top:auto;gap:0 12px;padding-block:8px 0}
+.top .tools{display:contents}
+.logo{order:1;flex:1 0 auto;font-size:18px}
+#cartBtn{order:2;min-height:40px;padding:6px 14px;font-size:13px}
+.top nav{order:3}
+#langs{order:4;margin-left:auto}
+#modes{display:none}
+.top .tabs{gap:12px;flex-wrap:nowrap}
+.top .tab{font-size:13px;min-height:40px;padding:6px 0}
+}
+@media (max-width:720px){.hero{grid-template-columns:1fr;gap:32px}.steps{grid-template-columns:1fr;gap:16px}.fields{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px}.view{padding-block:32px}.tools{margin-left:0;width:100%;justify-content:space-between}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head><body>
+<div id="app">
+  <header class="top">
+    <button class="logo" id="logo" type="button" aria-label="May Flowers"><span class="wm"><em>May</em>Flowers</span><small>by Mais</small></button>
+    <nav class="tabs" aria-label="Разделы">
+      <button class="tab" type="button" data-view="shop" data-i="nav_shop"></button>
+      <button class="tab" type="button" data-view="cabinet" data-i="nav_cab"></button>
+      <button class="tab" type="button" data-view="studio" data-i="nav_studio"></button>
+    </nav>
+    <div class="tools">
+      <div class="tabs" id="langs" role="group" aria-label="Language">
+        <button class="tab" type="button" data-lang="ru" aria-pressed="true">RU</button>
+        <button class="tab" type="button" data-lang="en" aria-pressed="false">EN</button>
+        <button class="tab" type="button" data-lang="hy" aria-pressed="false">HY</button>
+      </div>
+      <div class="tabs" id="modes" role="group" aria-label="Mode">
+        <button class="tab" type="button" data-mode="site" aria-pressed="true" data-i="m_site"></button>
+        <button class="tab" type="button" data-mode="tg" aria-pressed="false" data-i="m_tg"></button>
+      </div>
+      <button class="btn sm" id="cartBtn" type="button"></button>
+    </div>
+  </header>
+  <div id="tickHost"></div>
+  <main id="main"></main>
+  <footer class="note" style="padding-block:32px 0" data-i="foot"></footer>
+</div>
+<div id="stickyHost"></div>
+<div id="toastHost" aria-live="polite"></div>
+
+<script>
+/* Bot connection: after deploying the studio bot, put its address and INTAKE_KEY here. Empty url = demo, nothing is sent. */
+const ORDER_API={url:'',key:''};
+let TG=null; /* Telegram.WebApp when the page runs as a Telegram mini app */
+const T={
+ru:{by:'by Mais',cab_loading:'Загружаю ваши заказы…',cab_err:'Не удалось загрузить заказы. Проверьте интернет.',cab_refresh:'Обновить',cab_photo:'Фото вашего букета',rem_del:'Удалить',rem_none:'Напоминаний нет. Отметьте «Напомнить в следующем году» при заказе.',st_cancel:'Отменён',st_wait:'Ищем студию',cab_local:'История хранится в этом браузере. В Telegram кабинет общий для всех ваших устройств.',co_wrap:'Оформление',co_paper:'Упаковка',co_ribbon:'Лента',co_com:'Комментарий флористу',co_com_ph:'Например: без лилий, побольше зелени',m_wrap:'Оформление',m_com:'Комментарий',papers:['Фирменный крафт May Flowers','Белая бумага','Чёрная бумага','Без упаковки, в коробке'],ribbons:['Розовая атласная (фирменная)','Белая атласная','Красная атласная','Чёрная атласная'],send_fail:'Заказ сохранён, но не дошёл до студии. Мы свяжемся с вами.',hero_vid:'Маис дарит цветы незнакомым людям на улицах Еревана',snd_on:'Включить звук',snd_off:'Выключить звук',ai_k:'Умный помощник',ai_t:'Не знаете, что выбрать?',ai_d:'Напишите, кому и по какому поводу, что человек любит и какой бюджет. Помощник подберёт букеты из каталога и подскажет текст открытки.',ai_ph:'Например: маме на 60-летие, любит пионы, до $120',ai_btn:'Подобрать',ai_stop:'Стоп',ai_load:'Подбираю букеты…',ai_card:'Текст для открытки',ai_use:'Взять в открытку',ai_used:'Текст добавлен в открытку',ai_ex1:'Маме на день рождения',ai_ex2:'Девушке, хочу извиниться',ai_ex3:'Коллеге спасибо, до $50',ai_local:'Подобрано по ключевым словам',ai_none:'Не нашёл подходящего. Опишите иначе или напишите менеджеру.',ai_empty:'Напишите пару слов о поводе',ai_lang:'русском',fr_k:'Витрина · штучные цветы',fr_s:'Выберите цветы прямо из витрины, флорист соберёт из них букет. Или возьмите готовый из каталога.',fr_ready:'Готовые букеты',fr_hint:'Нажмите на цветок в витрине',fr_sel:'Выбрано',fr_per:'за стебель',fr_add:'В корзину',rib:'Подари цветы · Подари добро · Добрые цветы · Доставка по Еревану от 60 минут · Букет добра незнакомцу +$15 · ',kind_k:'Букет добра',kind_t:'Подари добро',kind_d:'Добавьте к заказу маленький букет для незнакомого человека. Маис или наша команда вручит его от вашего имени на улицах Еревана, а вы получите видео вручения.',kind_add:'Добавить к заказу · +$15',kind_on:'Добавлено · убрать',co_kind:'Букет добра незнакомцу (+$15)',co_kind_d:'Вручим от вашего имени и пришлём видео',m_kind:'Букет добра: да (мини-букет для вручения)',cab_kind:'Букет добра: видео придёт после вручения',hero_k:'Ереван · доставка из студий',less:'Убавить',more:'Добавить',nav_shop:'Магазин',nav_cab:'Кабинет',nav_studio:'Студия (бот)',m_site:'Сайт',m_tg:'Мини-апка',cart:'Корзина',
+hero_t:'Дари добро. Дари цветы.',hero_t1:'Дари добро.',hero_t2:'Дари цветы.',hero_s:'Доставка по Еревану из партнёрских студий. Соберём за час или привезём к точному времени.',hero_cta:'Выбрать букет',hero_ph:'Фото Маиса добавим позже',
+s1t:'Выберите',s1d:'Каталог с реальными букетами и фиксированными ценами',s2t:'Оформите',s2d:'Дата, время, открытка. Напомним о поводе в следующем году',s3t:'Мы доставим',s3d:'Студия соберёт, пришлёт фото и передаст курьеру',
+cat_t:'Каталог',f_all:'Все',o_bd:'День рождения',o_love:'Любовь',o_thanks:'Спасибо',o_mom:'Маме',o_sorry:'Прости',add:'В корзину',
+cu_t:'Индивидуальный заказ',cu_d:'От $500 до $2000: большие букеты роз и особые композиции. Менеджер согласует состав и цену, студия приступает после предоплаты.',cu_cta:'Написать менеджеру',
+foot:'Прототип. Цены и студии условные, фото референсные. Оплата и бот работают в режиме демо.',
+co_t:'Оформление заказа',co_rec:'Получатель',co_phone:'Телефон получателя',co_addr:'Адрес доставки (Ереван)',co_date:'Дата',co_win:'Время доставки',win_asap:'Как можно скорее (около 60 мин)',win_exact:'Точное время',co_occ:'Повод',
+co_card:'Открытка',card_none:'Без открытки',card_text:'С текстом',co_card_text:'Текст открытки',co_ai:'Придумать текст (демо ИИ)',tone_warm:'Тёплый',tone_fun:'Весёлый',tone_form:'Официальный',co_anon:'Отправить анонимно',
+co_you:'Ваши данные',co_yname:'Ваше имя',co_yphone:'Ваш телефон',co_pay:'Оплата',pay_note:'Демо: деньги не списываются.',
+co_rem:'Напомнить об этом поводе в следующем году',co_remwhen:'Напомним за 7 дней и за 1 день в Telegram',co_sub:'Букеты',co_deliv:'Доставка',co_total:'Итого',co_place:'Заказать',co_empty:'В корзине пусто. Выберите букет в каталоге.',req:'Заполните поле',back:'В каталог',
+ok_t:'Заказ принят',ok_d:'Мы отправили заявку в студию. Фото собранного букета придёт вам до доставки.',ok_cal:'Добавить напоминание в Google Календарь',ok_cab:'Открыть кабинет',
+cab_t:'Личный кабинет',cab_orders:'История заказов',cab_rem:'Напоминания',cab_book:'Адресная книга',cab_none:'Пока нет заказов.',reorder:'Повторить',to_cal:'В календарь',rem_for:'Напомним',
+st:['Новый','Принят студией','Собран','Фото отправлено','У курьера','Доставлен'],
+bot_t:'Так выглядит бот для студии',bot_hint:'Студия подключается к Telegram и получает заявки. Нажимайте кнопки, статус в кабинете клиента обновится.',bot_none:'Сделайте заказ, и заявка появится здесь.',bot_rule:'Если студия не нажала «Принять» за 10 минут, заявка уходит в следующую.',
+b_acc:'Принять',b_bui:'Собран',b_pho:'Отправить фото',b_cou:'Отдан курьеру',b_don:'Доставлен',
+msg_new:'Новая заявка',m_rec:'Получатель',m_ph:'Телефон',m_ad:'Адрес',m_wh:'Когда',m_ca:'Открытка',m_sum:'Сумма к выплате студии',m_it:'Состав',nocard:'без открытки',anon:'анонимно',
+ai_warm:'{n}, пусть этот день будет таким же тёплым, как ты. Обнимаю!',ai_fun:'{n}, это не просто цветы, это официальное разрешение на хорошее настроение!',ai_form:'{n}, примите искренние поздравления и наилучшие пожелания.',
+mgr:'Менеджер получит ваш запрос (демо)',sent:'Отправлено'},
+en:{by:'by Mais',cab_loading:'Loading your orders…',cab_err:'Could not load orders. Check your connection.',cab_refresh:'Refresh',cab_photo:'Photo of your bouquet',rem_del:'Delete',rem_none:'No reminders. Tick “Remind me next year” when ordering.',st_cancel:'Cancelled',st_wait:'Finding a studio',cab_local:'History is kept in this browser. In Telegram your account is the same on every device.',co_wrap:'Wrapping',co_paper:'Paper',co_ribbon:'Ribbon',co_com:'Note for the florist',co_com_ph:'For example: no lilies, more greenery',m_wrap:'Wrapping',m_com:'Note',papers:['May Flowers signature kraft','White paper','Black paper','No wrap, in a box'],ribbons:['Pink satin (signature)','White satin','Red satin','Black satin'],send_fail:'Order saved but did not reach the studio. We will contact you.',hero_vid:'Mais gives flowers to strangers on the streets of Yerevan',snd_on:'Sound on',snd_off:'Sound off',ai_k:'Smart assistant',ai_t:'Not sure what to pick?',ai_d:'Write who it is for, the occasion, what they like and your budget. The assistant picks bouquets from the catalog and suggests a card text.',ai_ph:'For example: for my mom’s 60th, she loves peonies, up to $120',ai_btn:'Find bouquets',ai_stop:'Stop',ai_load:'Picking bouquets…',ai_card:'Card text',ai_use:'Use on the card',ai_used:'Text added to the card',ai_ex1:'For mom’s birthday',ai_ex2:'For my girlfriend, to say sorry',ai_ex3:'Thank a colleague, up to $50',ai_local:'Matched by keywords',ai_none:'Nothing fits. Try describing it differently or message a manager.',ai_empty:'Write a few words about the occasion',ai_lang:'English',fr_k:'Display · single stems',fr_s:'Pick flowers right from the display and the florist builds a bouquet from them. Or take a ready one from the catalog.',fr_ready:'Ready bouquets',fr_hint:'Tap a flower in the display',fr_sel:'Selected',fr_per:'per stem',fr_add:'Add to cart',rib:'Give flowers · Give kindness · Kind flowers · Delivery across Yerevan from 60 minutes · Kindness bouquet for a stranger +$15 · ',kind_k:'Kindness bouquet',kind_t:'Give kindness',kind_d:'Add a small bouquet for a stranger to your order. Mais or our team hands it over on your behalf on the streets of Yerevan, and you get the video.',kind_add:'Add to order · +$15',kind_on:'Added · remove',co_kind:'Kindness bouquet for a stranger (+$15)',co_kind_d:'Handed over on your behalf, video sent to you',m_kind:'Kindness bouquet: yes (mini bouquet to hand over)',cab_kind:'Kindness bouquet: video arrives after the hand-over',hero_k:'Yerevan · delivered from studios',less:'Decrease',more:'Increase',nav_shop:'Shop',nav_cab:'Account',nav_studio:'Studio (bot)',m_site:'Site',m_tg:'Mini-app',cart:'Cart',
+hero_t:'Give kindness. Give flowers.',hero_t1:'Give kindness.',hero_t2:'Give flowers.',hero_s:'Delivery across Yerevan from partner studios. Ready within an hour or at an exact time.',hero_cta:'Choose a bouquet',hero_ph:'Mais photo coming later',
+s1t:'Choose',s1d:'Catalog of real bouquets at fixed prices',s2t:'Order',s2d:'Date, time, card. We remind you next year',s3t:'We deliver',s3d:'The studio builds it, sends a photo and hands it to a courier',
+cat_t:'Catalog',f_all:'All',o_bd:'Birthday',o_love:'Love',o_thanks:'Thank you',o_mom:'For mom',o_sorry:'Sorry',add:'Add to cart',
+cu_t:'Custom order',cu_d:'From $500 to $2000: large rose bouquets and special compositions. A manager confirms the content and price; the studio starts after prepayment.',cu_cta:'Message a manager',
+foot:'Prototype. Prices and studios are placeholders, photos are references. Payment and bot run in demo mode.',
+co_t:'Checkout',co_rec:'Recipient',co_phone:'Recipient phone',co_addr:'Delivery address (Yerevan)',co_date:'Date',co_win:'Delivery time',win_asap:'As soon as possible (about 60 min)',win_exact:'Exact time',co_occ:'Occasion',
+co_card:'Card',card_none:'No card',card_text:'With text',co_card_text:'Card text',co_ai:'Write it for me (AI demo)',tone_warm:'Warm',tone_fun:'Playful',tone_form:'Formal',co_anon:'Send anonymously',
+co_you:'Your details',co_yname:'Your name',co_yphone:'Your phone',co_pay:'Payment',pay_note:'Demo: no money is charged.',
+co_rem:'Remind me about this occasion next year',co_remwhen:'We remind you 7 days and 1 day before in Telegram',co_sub:'Bouquets',co_deliv:'Delivery',co_total:'Total',co_place:'Place order',co_empty:'Your cart is empty. Pick a bouquet from the catalog.',req:'Fill in this field',back:'Back to catalog',
+ok_t:'Order placed',ok_d:'The request is with the studio. You get a photo of the finished bouquet before delivery.',ok_cal:'Add reminder to Google Calendar',ok_cab:'Open account',
+cab_t:'Account',cab_orders:'Order history',cab_rem:'Reminders',cab_book:'Address book',cab_none:'No orders yet.',reorder:'Order again',to_cal:'Add to calendar',rem_for:'Reminder for',
+st:['New','Accepted','Built','Photo sent','With courier','Delivered'],
+bot_t:'What the studio bot looks like',bot_hint:'A studio connects to Telegram and receives requests. Press the buttons and the status in the client account updates.',bot_none:'Place an order and the request shows up here.',bot_rule:'If the studio does not press Accept within 10 minutes, the request goes to the next studio.',
+b_acc:'Accept',b_bui:'Built',b_pho:'Send photo',b_cou:'Handed to courier',b_don:'Delivered',
+msg_new:'New request',m_rec:'Recipient',m_ph:'Phone',m_ad:'Address',m_wh:'When',m_ca:'Card',m_sum:'Payout to studio',m_it:'Items',nocard:'no card',anon:'anonymous',
+ai_warm:'{n}, may this day be as warm as you are. Hugs!',ai_fun:'{n}, these are not just flowers, this is an official permit for a great mood!',ai_form:'{n}, please accept our sincere congratulations and best wishes.',
+mgr:'A manager will get your request (demo)',sent:'Sent'},
+hy:{by:'by Mais',cab_loading:'Բեռնում եմ ձեր պատվերները…',cab_err:'Չհաջողվեց բեռնել պատվերները: Ստուգեք ինտերնետը:',cab_refresh:'Թարմացնել',cab_photo:'Ձեր ծաղկեփնջի լուսանկարը',rem_del:'Ջնջել',rem_none:'Հիշեցումներ չկան: Պատվիրելիս նշեք «Հիշեցնել հաջորդ տարի»:',st_cancel:'Չեղարկված',st_wait:'Փնտրում ենք ստուդիա',cab_local:'Պատմությունը պահվում է այս դիտարկիչում: Telegram-ում կաբինետը նույնն է բոլոր սարքերում:',co_wrap:'Ձևավորում',co_paper:'Փաթեթավորում',co_ribbon:'Ժապավեն',co_com:'Մեկնաբանություն ծաղկավաճառին',co_com_ph:'Օրինակ՝ առանց շուշանների, ավելի շատ կանաչ',m_wrap:'Ձևավորում',m_com:'Մեկնաբանություն',papers:['May Flowers ֆիրմային կրաֆտ','Սպիտակ թուղթ','Սև թուղթ','Առանց փաթեթի, տուփում'],ribbons:['Վարդագույն ատլաս (ֆիրմային)','Սպիտակ ատլաս','Կարմիր ատլաս','Սև ատլաս'],send_fail:'Պատվերը պահպանված է, բայց չհասավ ստուդիային: Մենք կկապվենք ձեզ հետ:',hero_vid:'Մաիսը ծաղիկներ է նվիրում անծանոթներին Երևանի փողոցներում',snd_on:'Միացնել ձայնը',snd_off:'Անջատել ձայնը',ai_k:'Խելացի օգնական',ai_t:'Չգիտե՞ք՝ ինչ ընտրել',ai_d:'Գրեք՝ ում համար է, ինչ առիթով, ինչ է սիրում և ինչ բյուջե ունեք: Օգնականը կընտրի ծաղկեփնջեր կատալոգից և կառաջարկի բացիկի տեքստ:',ai_ph:'Օրինակ՝ մայրիկին 60-ամյակի համար, սիրում է քաջվարդեր, մինչև $120',ai_btn:'Ընտրել',ai_stop:'Կանգնեցնել',ai_load:'Ընտրում եմ ծաղկեփնջեր…',ai_card:'Բացիկի տեքստ',ai_use:'Օգտագործել բացիկում',ai_used:'Տեքստը ավելացվեց բացիկին',ai_ex1:'Մայրիկին ծննդյան օրվա համար',ai_ex2:'Աղջկան՝ ներողություն խնդրելու',ai_ex3:'Գործընկերոջը շնորհակալություն, մինչև $50',ai_local:'Ընտրված է բանալի բառերով',ai_none:'Համապատասխան բան չգտա: Նկարագրեք այլ կերպ կամ գրեք մենեջերին:',ai_empty:'Գրեք մի քանի բառ առիթի մասին',ai_lang:'армянском',fr_k:'Ցուցափեղկ · հատով ծաղիկներ',fr_s:'Ընտրեք ծաղիկներ անմիջապես ցուցափեղկից, և ծաղկավաճառը դրանցից կհավաքի ծաղկեփունջ: Կամ վերցրեք պատրաստին կատալոգից:',fr_ready:'Պատրաստի ծաղկեփնջեր',fr_hint:'Սեղմեք ծաղկի վրա',fr_sel:'Ընտրված է',fr_per:'մեկ ցողունը',fr_add:'Զամբյուղ',rib:'Նվիրիր ծաղիկներ · Նվիրիր բարություն · Բարի ծաղիկներ · Առաքում Երևանով 60 րոպեից · Բարության ծաղկեփունջ անծանոթին +$15 · ',kind_k:'Բարության ծաղկեփունջ',kind_t:'Նվիրիր բարություն',kind_d:'Ավելացրեք պատվերին փոքրիկ ծաղկեփունջ անծանոթ մարդու համար: Մաիսը կամ մեր թիմը կհանձնի այն ձեր անունից Երևանի փողոցներում, իսկ դուք կստանաք տեսանյութը:',kind_add:'Ավելացնել պատվերին · +$15',kind_on:'Ավելացված է · հանել',co_kind:'Բարության ծաղկեփունջ անծանոթին (+$15)',co_kind_d:'Կհանձնենք ձեր անունից և կուղարկենք տեսանյութը',m_kind:'Բարության ծաղկեփունջ. այո (մինի փունջ հանձնման համար)',cab_kind:'Բարության ծաղկեփունջ. տեսանյութը կգա հանձնումից հետո',hero_k:'Երևան · առաքում ստուդիաներից',less:'Պակասեցնել',more:'Ավելացնել',nav_shop:'Խանութ',nav_cab:'Կաբինետ',nav_studio:'Ստուդիա (բոտ)',m_site:'Կայք',m_tg:'Մինի-հավելված',cart:'Զամբյուղ',
+hero_t:'Նվիրիր բարություն: Նվիրիր ծաղիկներ:',hero_t1:'Նվիրիր բարություն:',hero_t2:'Նվիրիր ծաղիկներ:',hero_s:'Առաքում Երևանով մեկ գործընկեր ստուդիաներից: Հավաքում ենք մեկ ժամում կամ ճիշտ նշված ժամին:',hero_cta:'Ընտրել ծաղկեփունջ',hero_ph:'Այստեղ կլինի Մաիսի լուսանկարը',
+s1t:'Ընտրեք',s1d:'Իրական ծաղկեփնջերի կատալոգ հաստատուն գներով',s2t:'Պատվիրեք',s2d:'Ամսաթիվ, ժամ, բացիկ: Հաջորդ տարի կհիշեցնենք',s3t:'Մենք կառաքենք',s3d:'Ստուդիան կհավաքի, կուղարկի լուսանկար և կհանձնի առաքիչին',
+cat_t:'Կատալոգ',f_all:'Բոլորը',o_bd:'Ծննդյան օր',o_love:'Սեր',o_thanks:'Շնորհակալություն',o_mom:'Մայրիկին',o_sorry:'Ներողություն',add:'Ավելացնել',
+cu_t:'Անհատական պատվեր',cu_d:'$500-ից $2000: վարդերի մեծ փնջեր և հատուկ կոմպոզիցիաներ: Մենեջերը համաձայնեցնում է կազմը և գինը, ստուդիան սկսում է կանխավճարից հետո:',cu_cta:'Գրել մենեջերին',
+foot:'Նախատիպ: գները և ստուդիաները պայմանական են, լուսանկարները՝ օրինակներ: Վճարումը և բոտը դեմո ռեժիմում են:',
+co_t:'Պատվերի ձևակերպում',co_rec:'Ստացող',co_phone:'Ստացողի հեռախոսը',co_addr:'Առաքման հասցե (Երևան)',co_date:'Ամսաթիվ',co_win:'Առաքման ժամ',win_asap:'Որքան հնարավոր է շուտ (մոտ 60 րոպե)',win_exact:'Ճշգրիտ ժամ',co_occ:'Առիթ',
+co_card:'Բացիկ',card_none:'Առանց բացիկի',card_text:'Տեքստով',co_card_text:'Բացիկի տեքստ',co_ai:'Գրել ինձ համար (AI դեմո)',tone_warm:'Ջերմ',tone_fun:'Զվարթ',tone_form:'Պաշտոնական',co_anon:'Ուղարկել անանուն',
+co_you:'Ձեր տվյալները',co_yname:'Ձեր անունը',co_yphone:'Ձեր հեռախոսը',co_pay:'Վճարում',pay_note:'Դեմո. գումար չի գանձվում:',
+co_rem:'Հիշեցնել այս առիթի մասին հաջորդ տարի',co_remwhen:'Կհիշեցնենք 7 օր և 1 օր առաջ Telegram-ով',co_sub:'Ծաղկեփնջեր',co_deliv:'Առաքում',co_total:'Ընդամենը',co_place:'Պատվիրել',co_empty:'Զամբյուղը դատարկ է: Ընտրեք ծաղկեփունջ կատալոգից:',req:'Լրացրեք դաշտը',back:'Կատալոգ',
+ok_t:'Պատվերն ընդունված է',ok_d:'Հայտը ուղարկվել է ստուդիա: Պատրաստի ծաղկեփնջի լուսանկարը կստանաք առաքումից առաջ:',ok_cal:'Ավելացնել հիշեցում Google Calendar-ում',ok_cab:'Բացել կաբինետը',
+cab_t:'Անձնական կաբինետ',cab_orders:'Պատվերների պատմություն',cab_rem:'Հիշեցումներ',cab_book:'Հասցեների գիրք',cab_none:'Դեռ պատվերներ չկան:',reorder:'Կրկնել',to_cal:'Օրացույցում',rem_for:'Հիշեցում',
+st:['Նոր','Ընդունված','Հավաքված','Լուսանկարն ուղարկված','Առաքիչի մոտ','Առաքված'],
+bot_t:'Ահա թե ինչպես է երևում բոտը ստուդիայի համար',bot_hint:'Ստուդիան միանում է Telegram-ին և ստանում հայտերը: Սեղմեք կոճակները, հաճախորդի կաբինետում կարգավիճակը կթարմացվի:',bot_none:'Կատարեք պատվեր, և հայտն այստեղ կհայտնվի:',bot_rule:'Եթե ստուդիան 10 րոպեում չսեղմի «Ընդունել», հայտը անցնում է հաջորդ ստուդիային:',
+b_acc:'Ընդունել',b_bui:'Հավաքված է',b_pho:'Ուղարկել լուսանկար',b_cou:'Հանձնվել է առաքիչին',b_don:'Առաքված է',
+msg_new:'Նոր հայտ',m_rec:'Ստացող',m_ph:'Հեռախոս',m_ad:'Հասցե',m_wh:'Երբ',m_ca:'Բացիկ',m_sum:'Վճար ստուդիային',m_it:'Կազմ',nocard:'առանց բացիկի',anon:'անանուն',
+ai_warm:'{n}, թող այս օրը լինի նույնքան ջերմ, որքան դու: Գրկում եմ!',ai_fun:'{n}, սրանք պարզապես ծաղիկներ չեն, սա լավ տրամադրության պաշտոնական թույլտվություն է:',ai_form:'{n}, ընդունեք մեր անկեղծ շնորհավորանքները և լավագույն մաղթանքները:',
+mgr:'Մենեջերը կստանա ձեր հարցումը (դեմո)',sent:'Ուղարկված է'}
+};
+const PRODUCTS=[
+{id:1,usd:120,occ:['bd','love'],img:'img/b01.jpg',n:{ru:'Тропики',en:'Tropics',hy:'Արևադարձ'},k:{ru:'Протея, орхидея, геликония, монстера',en:'Protea, orchid, heliconia, monstera',hy:'Պրոտեա, խոլորձ, հելիկոնիա, մոնստերա'}},
+{id:2,usd:65,occ:['thanks','sorry','mom'],img:'img/b02.jpg',n:{ru:'Белая тишина',en:'White calm',hy:'Սպիտակ հանգստություն'},k:{ru:'Белые розы, эустома, гортензия, эвкалипт',en:'White roses, eustoma, hydrangea, eucalyptus',hy:'Սպիտակ վարդ, էուստոմա, հորտենզիա, էվկալիպտ'}},
+{id:3,usd:75,occ:['bd','love'],img:'img/b03.jpg',n:{ru:'Лаванда',en:'Lavender',hy:'Նարդոս'},k:{ru:'Розы, ирис, лаванда, эустома',en:'Roses, iris, lavender, eustoma',hy:'Վարդ, հիրիկ, նարդոս, էուստոմա'}},
+{id:4,usd:45,occ:['bd','thanks','sorry'],img:'img/b04.jpg',n:{ru:'Солнце',en:'Sunshine',hy:'Արև'},k:{ru:'Подсолнухи, гербера, альстромерия, мешковина',en:'Sunflowers, gerbera, alstroemeria, burlap',hy:'Արևածաղիկ, գերբերա, ալստրոմերիա'}},
+{id:5,usd:110,occ:['love','mom','bd'],img:'img/b05.jpg',n:{ru:'Пионовое облако',en:'Peony cloud',hy:'Քաջվարդի ամպ'},k:{ru:'Пионы, пионовидные розы, гортензия',en:'Peonies, garden roses, hydrangea',hy:'Քաջվարդ, այգու վարդ, հորտենզիա'}},
+{id:6,usd:60,occ:['thanks','mom'],img:'img/b06.jpg',n:{ru:'Сухоцвет',en:'Dried bouquet',hy:'Չորածաղիկ'},k:{ru:'Розы, пампас, лагурус, гортензия. Стоит месяцами',en:'Roses, pampas, bunny tails, hydrangea. Lasts for months',hy:'Վարդ, պամպաս, հորտենզիա: Պահպանվում է ամիսներ'}},
+{id:7,usd:80,occ:['sorry','thanks'],img:'img/b07.jpg',n:{ru:'Ночь',en:'Night',hy:'Գիշեր'},k:{ru:'Лилии, антуриум, белые розы, чёрная упаковка',en:'Lilies, anthurium, white roses, black wrap',hy:'Շուշան, անթուրիում, սպիտակ վարդ'}},
+{id:8,usd:40,occ:['thanks','mom','bd'],img:'img/b08.jpg',n:{ru:'Полевой',en:'Wildflower',hy:'Դաշտային'},k:{ru:'Дельфиниум, ромашка, кустовая роза, крафт',en:'Delphinium, chamomile, spray roses, kraft',hy:'Դելֆինիում, երիցուկ, թփային վարդ, կրաֆտ'}},
+{id:9,usd:70,occ:['mom','bd','love'],img:'img/b09.jpg',n:{ru:'Весна',en:'Spring',hy:'Գարուն'},k:{ru:'Тюльпаны, ранункулюс, розы, восковник',en:'Tulips, ranunculus, roses, waxflower',hy:'Կակաչ, ռանունկուլուս, վարդ'}},
+{id:10,usd:70,occ:['love','bd'],img:'img/b10.jpg',n:{ru:'Классика',en:'Classic',hy:'Դասական'},k:{ru:'15 красных и розовых роз, эвкалипт',en:'15 red and pink roses, eucalyptus',hy:'15 կարմիր և վարդագույն վարդ, էվկալիպտ'}},
+{id:11,usd:260,occ:['love'],img:'img/b11.jpg',n:{ru:'Бордо',en:'Bordeaux',hy:'Բորդո'},k:{ru:'Орхидеи, антуриум, калла, амарант, зеркальный куб',en:'Orchids, anthurium, calla, amaranth, mirror cube',hy:'Խոլորձ, անթուրիում, կալլա, հայելային խորանարդ'}},
+{id:12,usd:320,occ:['love','mom'],img:'img/b12.jpg',n:{ru:'Белый праздник',en:'White occasion',hy:'Սպիտակ տոն'},k:{ru:'Орхидеи, розы, гортензия, амарант, каменная ваза',en:'Orchids, roses, hydrangea, amaranth, stone vase',hy:'Խոլորձ, վարդ, հորտենզիա, քարե ծաղկաման'}},
+{id:13,usd:150,occ:['thanks','mom'],img:'img/b13.jpg',n:{ru:'Бархат',en:'Velvet',hy:'Թավիշ'},k:{ru:'Сухоцветы и стабилизированные розы в бархатной коробке',en:'Dried flowers and preserved roses in a velvet box',hy:'Չորածաղիկներ և կայունացված վարդեր թավշյա տուփում'}},
+{id:14,usd:55,occ:['bd','thanks'],img:'img/b14.jpg',n:{ru:'Дача',en:'Country',hy:'Գյուղական'},k:{ru:'Подсолнухи, гербера, львиный зев, ваза-банка',en:'Sunflowers, gerbera, snapdragon, jar vase',hy:'Արևածաղիկ, գերբերա, ծաղկաման-բանկա'}},
+{id:15,usd:95,occ:['mom','bd'],img:'img/b15.jpg',n:{ru:'Весна в стекле',en:'Spring in glass',hy:'Գարուն ապակում'},k:{ru:'Тюльпаны, гиацинт, нарцисс, мускари в прозрачной тубе',en:'Tulips, hyacinth, narcissus, muscari in a clear tube',hy:'Կակաչ, հակինթ, նարգիզ, թափանցիկ տուփում'}},
+{id:16,usd:90,occ:['love'],img:'img/b16.jpg',n:{ru:'Сердце',en:'Heart',hy:'Սիրտ'},k:{ru:'Розы, пионы, ранункулюс в коробке-сердце',en:'Roses, peonies, ranunculus in a heart box',hy:'Վարդ, քաջվարդ, ռանունկուլուս սրտաձև տուփում'}},
+{id:17,usd:140,occ:['bd','thanks'],img:'img/b17.jpg',n:{ru:'Экзотика',en:'Exotic',hy:'Էկզոտիկա'},k:{ru:'Антуриум, геликония, орхидея, монстера в чаше',en:'Anthurium, heliconia, orchid, monstera in a bowl',hy:'Անթուրիում, հելիկոնիա, խոլորձ, մոնստերա'}},
+{id:18,usd:85,occ:['sorry','mom','thanks'],img:'img/b18.jpg',n:{ru:'Лилии',en:'Lilies',hy:'Շուշաններ'},k:{ru:'Белые лилии, розы, эвкалипт в хрустальной вазе',en:'White lilies, roses, eucalyptus in a crystal vase',hy:'Սպիտակ շուշան, վարդ, էվկալիպտ բյուրեղյա ծաղկամանում'}},
+{id:19,usd:190,occ:['love'],img:'img/b19.jpg',n:{ru:'Люкс',en:'Luxe',hy:'Լյուքս'},k:{ru:'Красные розы и орхидея в акриловом боксе',en:'Red roses and orchid in an acrylic box',hy:'Կարմիր վարդեր և խոլորձ ակրիլային տուփում'}},
+{id:20,usd:130,occ:['mom','bd','love'],img:'img/b20.jpg',n:{ru:'Шляпная коробка',en:'Hatbox',hy:'Գլխարկի տուփ'},k:{ru:'Пионы, пионовидные розы, гортензия в коробке',en:'Peonies, garden roses, hydrangea in a hatbox',hy:'Քաջվարդ, այգու վարդ, հորտենզիա տուփում'}},
+{id:101,usd:3,occ:[],stem:true,img:'img/s01.webp',n:{ru:'Роза',en:'Rose',hy:'Վարդ'},k:{ru:'Штучный стебель',en:'Single stem',hy:'Մեկ ցողուն'}},
+{id:102,usd:8,occ:[],stem:true,img:'img/s02.webp',n:{ru:'Пион',en:'Peony',hy:'Քաջվարդ'},k:{ru:'Штучный стебель',en:'Single stem',hy:'Մեկ ցողուն'}},
+{id:103,usd:4,occ:[],stem:true,img:'img/s03.webp',n:{ru:'Гладиолус',en:'Gladiolus',hy:'Գլադիոլուս'},k:{ru:'Штучный стебель',en:'Single stem',hy:'Մեկ ցողուն'}},
+{id:104,usd:3,occ:[],stem:true,img:'img/s04.webp',n:{ru:'Тюльпан',en:'Tulip',hy:'Կակաչ'},k:{ru:'Штучный стебель',en:'Single stem',hy:'Մեկ ցողուն'}},
+{id:105,usd:6,occ:[],stem:true,img:'img/s05.webp',n:{ru:'Лилия',en:'Lily',hy:'Շուշան'},k:{ru:'Штучный стебель',en:'Single stem',hy:'Մեկ ցողուն'}},
+{id:106,usd:4,occ:[],stem:true,img:'img/s06.webp',n:{ru:'Подсолнух',en:'Sunflower',hy:'Արևածաղիկ'},k:{ru:'Штучный стебель',en:'Single stem',hy:'Մեկ ցողուն'}},
+{id:107,usd:3,occ:[],stem:true,img:'img/s07.webp',n:{ru:'Ирис',en:'Iris',hy:'Հիրիկ'},k:{ru:'Штучный стебель',en:'Single stem',hy:'Մեկ ցողուն'}},
+{id:108,usd:6,occ:[],stem:true,img:'img/s08.webp',n:{ru:'Антуриум',en:'Anthurium',hy:'Անթուրիում'},k:{ru:'Штучный стебель',en:'Single stem',hy:'Մեկ ցողուն'}},
+{id:109,usd:9,occ:[],stem:true,img:'img/s09.webp',n:{ru:'Орхидея',en:'Orchid',hy:'Խոլորձ'},k:{ru:'Штучный стебель',en:'Single stem',hy:'Մեկ ցողուն'}},
+{id:110,usd:5,occ:[],stem:true,img:'img/s10.webp',n:{ru:'Калла',en:'Calla',hy:'Կալլա'},k:{ru:'Штучный стебель',en:'Single stem',hy:'Մեկ ցողուն'}}
+];
+const OCC=['bd','love','thanks','mom','sorry'];
+const WINDOWS=['10:00–12:00','12:00–14:00','14:00–16:00','16:00–18:00','18:00–20:00'];
+const PAYS=['Visa / Mastercard','Idram','Telcell','Карта РФ (RUB)','Telegram Stars','USDT'];
+const RATE=390, DELIV=3, KIND=15;
+const REEL=document.createElement('video');
+(()=>{const rm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+  REEL.src='vid/mais.mp4';REEL.poster='vid/mais.jpg';REEL.muted=true;REEL.loop=true;REEL.playsInline=true;REEL.setAttribute('playsinline','');REEL.preload='metadata';REEL.autoplay=!rm;if(rm)REEL.controls=true})();
+const S={lang:'ru',mode:'site',view:'shop',cart:[],filter:'all',orders:[],last:null,draft:{},kind:false,ai:{q:'',status:'idle',reply:'',picks:[],card:'',local:false},pick:101,pq:5,rot:0,crTarget:null};
+const LOC={ru:'ru-RU',en:'en-GB',hy:'hy-AM'};
+const $=s=>document.querySelector(s);
+const t=k=>T[S.lang][k];
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pn=p=>p.n[S.lang], pk=p=>p.k[S.lang];
+const amd=u=>(Math.round(u*RATE/100)*100).toLocaleString(LOC[S.lang])+'\u00a0֏';
+const usd=u=>'$'+u;
+function load(){try{S.orders=JSON.parse(localStorage.getItem('may_orders')||'[]')}catch(e){S.orders=[]}}
+function save(){try{localStorage.setItem('may_orders',JSON.stringify(S.orders))}catch(e){}}
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function fdate(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString(LOC[S.lang],{day:'numeric',month:'long',year:'numeric'})}
+function nextYear(s){const [y,m,d]=s.split('-').map(Number);return ymd(new Date(y+1,m-1,d))}
+function toast(m){const h=$('#toastHost');h.innerHTML='<div class="toast">'+esc(m)+'</div>';setTimeout(()=>{h.innerHTML=''},2200)}
+function calLink(o){const d=nextYear(o.date).replace(/-/g,'');const e=ymd(new Date(+d.slice(0,4),+d.slice(4,6)-1,+d.slice(6,8)+1)).replace(/-/g,'');
+  const title='May Flowers: '+(o.rec||'')+' ('+t('o_'+o.occ)+')';
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+d+'/'+e+'&details='+encodeURIComponent('Заказать цветы / Order flowers / Պատվիրել ծաղիկներ')}
+function art(p,eager){return '<img src="'+p.img+'" alt="'+esc(pn(p))+'" width="720" height="900"'+(eager?'':' loading="lazy"')+' decoding="async">'}
+const cartSum=()=>S.cart.reduce((a,c)=>a+PRODUCTS.find(p=>p.id===c.id).usd*c.q,0);
+const kindFee=()=>S.kind?KIND:0;
+const cartCount=()=>S.cart.reduce((a,c)=>a+c.q,0);
+function add(id){const c=S.cart.find(x=>x.id===id);c?c.q++:S.cart.push({id,q:1});chrome();toast(t('add')+': '+pn(PRODUCTS.find(p=>p.id===id)))}
+function marquee(){const s=('<span>'+esc(t('rib'))+'</span>').repeat(3);return '<div class="marq" role="marquee" aria-label="'+esc(t('rib'))+'"><div class="marq-track" aria-hidden="true">'+s+s+'</div></div>'}
+function fridge(){
+  const st=PRODUCTS.filter(p=>p.stem);
+  const ring='<div class="stage-scroll" id="stageScroll"><div class="stage" id="stage">'+st.map((p,k)=>'<button type="button" class="cr-item'+(S.pick===p.id?' on':'')+'" data-act="pick" data-v="'+p.id+'" data-k="'+k+'" aria-pressed="'+(S.pick===p.id)+'"><span class="cr-img"><img src="'+p.img+'" alt="" width="360" height="500" decoding="async" draggable="false"></span><span class="stem-name">'+esc(pn(p))+'</span></button>').join('')+'</div></div>';
+  return '<section class="fridge'+(S.pick?' has-pick':'')+'" id="fridge"><div class="fridge-in"><div class="fridge-head"><div><p class="label">'+t('fr_k')+'</p><h1>'+t('hero_t')+'</h1></div><div><p class="lead">'+t('fr_s')+'</p><button class="btn ghost-w" data-act="catalog">'+t('fr_ready')+'</button></div></div>'
+  +'<div class="case">'+ring+'</div><div class="pick" id="pickPanel" aria-live="polite">'+pickPanel()+'</div></div></section>'}
+function pickPanel(){const p=PRODUCTS.find(x=>x.id===S.pick);if(!p)return '<p class="hint">'+t('fr_hint')+'</p>';
+  return '<div class="pick-name"><span class="label">'+t('fr_sel')+'</span><b>'+esc(pn(p))+'</b></div>'
+  +'<div class="qty"><button type="button" data-act="pq" data-v="-1" aria-label="'+t('less')+'">−</button><span class="nums">'+S.pq+'</span><button type="button" data-act="pq" data-v="1" aria-label="'+t('more')+'">+</button></div>'
+  +'<button class="btn primary" data-act="addstem">'+t('fr_add')+' · '+usd(p.usd*S.pq)+'</button>'}
+function shopView(){
+  const list=PRODUCTS.filter(p=>!p.stem&&(S.filter==='all'||p.occ.includes(S.filter)));
+  return '<section class="hero"><div><p class="label">'+t('hero_k')+'</p><h1><span class="h-serif">'+t('hero_t1')+'</span> <span class="h-sans">'+t('hero_t2')+'</span></h1><p class="lead">'+t('hero_s')+'</p><button class="btn primary" data-act="catalog">'+t('hero_cta')+'</button></div>'
+  +'<figure class="gift"><div class="reel" id="reelSlot"><button type="button" class="snd" data-act="snd" aria-pressed="false">'+t('snd_on')+'</button></div><figcaption class="label">'+t('hero_vid')+'</figcaption></figure></section>'
+  +'<section class="ai" id="ai">'+aiInner()+'</section>'
+  +'<ol class="steps"><li><span class="label">01</span><b>'+t('s1t')+'</b>'+t('s1d')+'</li><li><span class="label">02</span><b>'+t('s2t')+'</b>'+t('s2d')+'</li><li><span class="label">03</span><b>'+t('s3t')+'</b>'+t('s3d')+'</li></ol>'
+  +'<section class="kind"><div><p class="label">'+t('kind_k')+' · +$'+KIND+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
+  +'<div class="sec" id="catalog"><h2>'+t('cat_t')+'</h2><div class="tabs" role="group">'
+  +['all'].concat(OCC).map(o=>'<button class="tab" data-act="filter" data-v="'+o+'" aria-pressed="'+(S.filter===o)+'">'+(o==='all'?t('f_all'):t('o_'+o))+'</button>').join('')+'</div></div>'
+  +'<div class="grid">'+list.map(p=>'<article class="item"><div class="tintbox">'+art(p)+'</div><h3>'+esc(pn(p))+'</h3><p class="comp">'+esc(pk(p))+'</p>'
+  +'<div class="buy"><span class="price">'+usd(p.usd)+'<small>'+amd(p.usd)+'</small></span><button class="btn sm" data-act="add" data-v="'+p.id+'">'+t('add')+'</button></div></article>').join('')+'</div>'
+  +'<div class="custom"><div><h3>'+t('cu_t')+'</h3><p>'+t('cu_d')+'</p></div><button class="btn" data-act="mgr">'+t('cu_cta')+'</button></div>'}
+
+/* smart assistant: asks Claude through the page's sample capability, falls back to keyword matching */
+let SAMPLE=null,AI_CTL=null;
+function aiInner(){const a=S.ai,busy=a.status==='loading';
+  let res='';
+  if(busy)res='<p class="ai-status" aria-live="polite">'+t('ai_load')+'</p>';
+  else if(a.status==='done'){
+    const ps=a.picks.map(x=>({p:PRODUCTS.find(p=>p.id===x.id),why:x.why})).filter(x=>x.p);
+    res='<div class="ai-res" aria-live="polite">'+(a.reply?'<p class="ai-reply">'+esc(a.reply)+'</p>':'')
+    +(ps.length?'<div class="ai-picks">'+ps.map(({p,why})=>'<article class="item"><div class="tintbox">'+art(p)+'</div><h3>'+esc(pn(p))+'</h3><p class="comp">'+esc(why||pk(p))+'</p><div class="buy"><span class="price">'+usd(p.usd)+'<small>'+amd(p.usd)+'</small></span><button class="btn sm" data-act="add" data-v="'+p.id+'">'+t('add')+'</button></div></article>').join('')+'</div>':'<p class="muted">'+t('ai_none')+'</p>')
+    +(a.card?'<div class="ai-card"><span class="label">'+t('ai_card')+'</span><p>«'+esc(a.card)+'»</p><button class="btn sm" data-act="aicard">'+t('ai_use')+'</button></div>':'')
+    +(a.local?'<p class="note">'+t('ai_local')+'</p>':'')+'</div>'}
+  else if(a.status==='error')res='<p class="err">'+esc(a.err||'')+'</p>';
+  return '<div class="ai-head"><div><p class="label">'+t('ai_k')+'</p><h2>'+t('ai_t')+'</h2></div><p class="ai-d">'+t('ai_d')+'</p></div>'
+  +'<form class="ai-form" id="aiForm"><label class="sr" for="ai_q">'+t('ai_k')+'</label><textarea id="ai_q" rows="2" placeholder="'+esc(t('ai_ph'))+'">'+esc(a.q)+'</textarea>'
+  +'<button class="btn primary" type="submit"'+(busy?' hidden':'')+'>'+t('ai_btn')+'</button><button class="btn" type="button" data-act="aistop"'+(busy?'':' hidden')+'>'+t('ai_stop')+'</button></form>'
+  +'<div class="tabs ai-ex">'+['ai_ex1','ai_ex2','ai_ex3'].map(k=>'<button type="button" class="tab" data-act="aiex" data-v="'+k+'">'+t(k)+'</button>').join('')+'</div>'+res}
+function aiPaint(){const el=document.getElementById('ai');if(!el)return;const f=document.activeElement&&document.activeElement.id==='ai_q';el.innerHTML=aiInner();if(f){const q=document.getElementById('ai_q');q.focus();q.setSelectionRange(q.value.length,q.value.length)}}
+function aiLocal(q){const s=q.toLowerCase();const occ={mom:/мам|mom|mother|մայր/,love:/люб|девушк|жен[аеуы]|любим|romant|love|girlfriend|wife|սեր|աղջ|կին/,bd:/рожд|юбил|birthday|anniversar|ծնունդ|ծննդ|ամյակ/,thanks:/спасиб|благодар|коллег|учител|thank|colleague|teacher|շնորհակալ|գործընկեր/,sorry:/прост|извин|sorry|apolog|ներող/};
+  const kw=[[/бел|white|սպիտակ/,[2,7,12,18]],[/красн|red|կարմիր/,[10,19,11]],[/розов|pink|нежн|վարդագույն/,[5,9,16,20]],[/пион|peon|քաջվարդ/,[5,20,16]],[/сух|dried|չոր/,[6,13]],[/подсолн|sunflower|արևածաղ/,[4,14]],[/тюльпан|tulip|կակաչ/,[9,15]],[/лили|lil|շուշան/,[18,7]],[/орхид|orchid|խոլորձ/,[11,12,19,1]],[/роз|rose|վարդ/,[10,19,2]],[/полев|wild|դաշտ/,[8]],[/коробк|box|տուփ/,[13,16,20,19]],[/экзот|тропи|exotic|tropic/,[1,17]],[/дорог|роскош|премиум|luxur|premium/,[11,12,19]]];
+  let budget=null;const bm=s.match(/(?:до|не дороже|не больше|бюджет|up to|under|max|budget|մինչև)\s*\$?\s*(\d[\d\s]{0,7})\s*(драм|amd|֏|դրամ)?/)||s.match(/\$\s*(\d[\d\s]{0,7})()/)||s.match(/(\d[\d\s]{0,7})\s*(\$|usd|долл|драм|amd|֏|դրամ)/);
+  if(bm){let n=+bm[1].replace(/\s/g,'');if((bm[2]&&/драм|amd|֏|դրամ/.test(bm[2]))||n>2500)n=n/RATE;if(n>=15)budget=n}
+  const sc=PRODUCTS.filter(p=>!p.stem).map(p=>{let v=0;for(const o in occ)if(occ[o].test(s)&&p.occ.includes(o))v+=3;for(const [r,ids] of kw)if(r.test(s)&&ids.includes(p.id))v+=2;if(budget&&p.usd>budget)v-=100;return{p,v}}).filter(x=>x.v>0).sort((a,b)=>b.v-a.v||a.p.usd-b.p.usd).slice(0,3);
+  return{reply:'',picks:sc.map(x=>({id:x.p.id,why:pk(x.p)})),card:'',local:true}}
+async function aiAsk(){const q=(S.ai.q||'').trim();if(!q){toast(t('ai_empty'));return}
+  S.ai.status='loading';aiPaint();
+  if(SAMPLE){AI_CTL=new AbortController();
+    const cat=PRODUCTS.filter(p=>!p.stem).map(p=>({id:p.id,name:pn(p),composition:pk(p),price_usd:p.usd,occasions:p.occ.map(o=>t('o_'+o))}));
+    const prompt='Ты флорист-консультант цветочного сервиса May Flowers в Ереване. Покупатель написал:\n"""'+q.slice(0,600)+'"""\n\nКаталог (JSON, цены в долларах США):\n'+JSON.stringify(cat)
+      +'\n\nПодбери до 3 букетов ТОЛЬКО из этого каталога по поводу, получателю, вкусам и бюджету. Если бюджет указан, не превышай его. Если запрос не про цветы или подарок, верни пустой picks и вежливо скажи, что помогаешь только с цветами.'
+      +'\nПиши на '+t('ai_lang')+' языке, тепло и коротко.'
+      +'\nОтветь только JSON: {"reply":"1–2 предложения","picks":[{"id":число из каталога,"why":"почему подходит, до 15 слов"}],"card":"текст открытки на 1–2 предложения или пустая строка"}';
+    try{const r=await SAMPLE.json(prompt,{modelTier:'quick',signal:AI_CTL.signal});
+      const ok=new Set(PRODUCTS.filter(p=>!p.stem).map(p=>p.id));
+      const picks=Array.isArray(r&&r.picks)?r.picks.map(x=>({id:Number(x&&x.id),why:String((x&&x.why)||'')})).filter(x=>ok.has(x.id)).slice(0,3):[];
+      S.ai=Object.assign(S.ai,{status:'done',reply:String((r&&r.reply)||''),picks,card:String((r&&r.card)||''),local:false});aiPaint();return}
+    catch(e){const code=e&&e.code;if(code==='cancelled'){S.ai.status='idle';aiPaint();return}
+      if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(code))SAMPLE=null}}
+  S.ai=Object.assign(S.ai,{status:'done'},aiLocal(q));aiPaint()}
+(async()=>{try{if(window.claude&&typeof claude.use==='function')SAMPLE=await claude.use('sample')}catch(e){SAMPLE=null}})();
+const FIELDS=['f_paper','f_ribbon','f_com','f_rec','f_phone','f_addr','f_date','f_win','f_exact','f_occ','f_text','f_tone','f_you','f_yphone'];
+function grab(){if(!$('#f_rec'))return;FIELDS.forEach(k=>{const e=$('#'+k);if(e)S.draft[k]=e.value});
+  ['f_anon','f_rem'].forEach(k=>{const e=$('#'+k);if(e)S.draft[k]=e.checked});
+  const kc=$('#f_kind');if(kc)S.kind=kc.checked;
+  const c=document.querySelector('input[name=card]:checked');if(c)S.draft.card=c.value;
+  const p=document.querySelector('input[name=pay]:checked');if(p)S.draft.pay=p.value}
+const dv=(k,d)=>S.draft[k]!==undefined?S.draft[k]:d;
+const fld=(id,label,val,extra)=>'<label>'+label+'<input id="'+id+'" aria-describedby="e_'+id+'" '+(extra||'')+' value="'+esc(val)+'"><span class="err" id="e_'+id+'" data-e="'+id+'"></span></label>';
+function emptyBox(msg,act,lbl){return '<div class="empty"><span>'+msg+'</span>'+(act?'<button class="btn" data-act="'+act+'">'+lbl+'</button>':'')+'</div>'}
+function checkoutView(){
+  if(!S.cart.length)return emptyBox(t('co_empty'),'shop',t('back'));
+  const sub=cartSum(),tot=sub+DELIV+kindFee(),card=dv('card','none'),win=dv('f_win','asap'),today=ymd(new Date());
+  const items=S.cart.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);return '<div class="line"><span>'+esc(pn(p))+'</span><span class="qty"><button type="button" data-act="dec" data-v="'+p.id+'" aria-label="'+t('less')+': '+esc(pn(p))+'">−</button>'+c.q+'<button type="button" data-act="inc" data-v="'+p.id+'" aria-label="'+t('more')+': '+esc(pn(p))+'">+</button></span><b class="nums">'+usd(p.usd*c.q)+'</b></div>'}).join('');
+  return '<h2 style="font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;margin-bottom:32px">'+t('co_t')+'</h2>'
+  +'<section class="blk"><span class="label">'+t('co_sub')+'</span>'+items+'<div class="line"><span>'+t('co_deliv')+'</span><b class="nums">'+usd(DELIV)+'</b></div></section>'
+  +'<section class="blk"><span class="label">'+t('co_rec')+'</span><div class="fields">'
+  +fld('f_rec',t('co_rec'),dv('f_rec',''),'autocomplete="off" aria-required="true"')+fld('f_phone',t('co_phone'),dv('f_phone',''),'type="tel" inputmode="tel" placeholder="+374" aria-required="true"')
+  +'<div class="full">'+fld('f_addr',t('co_addr'),dv('f_addr',''),'autocomplete="street-address" aria-required="true"')+'</div>'
+  +'<label>'+t('co_date')+'<input id="f_date" type="date" min="'+today+'" aria-describedby="e_f_date" value="'+esc(dv('f_date',today))+'"><span class="err" id="e_f_date" data-e="f_date"></span></label>'
+  +'<label>'+t('co_win')+'<select id="f_win"><option value="asap"'+(win==='asap'?' selected':'')+'>'+t('win_asap')+'</option>'+WINDOWS.map(w=>'<option'+(win===w?' selected':'')+'>'+w+'</option>').join('')+'<option value="exact"'+(win==='exact'?' selected':'')+'>'+t('win_exact')+'</option></select></label>'
+  +(win==='exact'?'<label>'+t('win_exact')+'<input id="f_exact" type="time" value="'+esc(dv('f_exact','12:00'))+'"></label>':'')
+  +'<label>'+t('co_occ')+'<select id="f_occ">'+OCC.map(o=>'<option value="'+o+'"'+(dv('f_occ','bd')===o?' selected':'')+'>'+t('o_'+o)+'</option>').join('')+'</select></label></div></section>'
+  +'<section class="blk"><span class="label">'+t('co_wrap')+'</span><div class="fields"><label>'+t('co_paper')+'<select id="f_paper">'+t('papers').map((x,i)=>'<option value="'+i+'"'+(+dv('f_paper',0)===i?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
+  +'<label>'+t('co_ribbon')+'<select id="f_ribbon">'+t('ribbons').map((x,i)=>'<option value="'+i+'"'+(+dv('f_ribbon',0)===i?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
+  +'<label class="full">'+t('co_com')+'<textarea id="f_com" placeholder="'+esc(t('co_com_ph'))+'">'+esc(dv('f_com',''))+'</textarea></label></div></section>'
+  +'<section class="blk"><span class="label">'+t('co_card')+'</span><div class="opts"><label><input type="radio" name="card" value="none"'+(card==='none'?' checked':'')+'>'+t('card_none')+'</label><label><input type="radio" name="card" value="text"'+(card==='text'?' checked':'')+'>'+t('card_text')+'</label></div>'
+  +(card==='text'?'<div class="fields" style="margin-top:16px"><label class="full">'+t('co_card_text')+'<textarea id="f_text">'+esc(dv('f_text',''))+'</textarea></label>'
+  +'<label>'+t('co_ai')+'<select id="f_tone">'+['ai_warm','ai_fun','ai_form'].map((k,i)=>'<option value="'+k+'"'+(dv('f_tone','ai_warm')===k?' selected':'')+'>'+t(['tone_warm','tone_fun','tone_form'][i])+'</option>').join('')+'</select></label>'
+  +'<div style="align-self:end"><button type="button" class="btn" data-act="ai">'+t('co_ai')+'</button></div></div>':'')
+  +'<label class="check" style="margin-top:8px"><input type="checkbox" id="f_anon"'+(dv('f_anon',false)?' checked':'')+'>'+t('co_anon')+'</label></section>'
+  +'<section class="blk kindblk"><span class="label">'+t('kind_t')+'</span><label class="check"><input type="checkbox" id="f_kind"'+(S.kind?' checked':'')+'>'+t('co_kind')+'</label><p class="note" style="margin-left:36px">'+t('co_kind_d')+'</p></section>'
+  +'<section class="blk"><span class="label">'+t('co_you')+'</span><div class="fields">'+fld('f_you',t('co_yname'),dv('f_you',''),'autocomplete="name" aria-required="true"')+fld('f_yphone',t('co_yphone'),dv('f_yphone',''),'type="tel" inputmode="tel" autocomplete="tel" aria-required="true"')+'</div></section>'
+  +'<section class="blk"><span class="label">'+t('co_pay')+'</span><div class="opts">'+PAYS.map(x=>'<label><input type="radio" name="pay" value="'+esc(x)+'"'+((dv('pay',PAYS[0])===x)?' checked':'')+'>'+esc(x)+'</label>').join('')+'</div><p class="note" style="margin-top:8px">'+t('pay_note')+'</p></section>'
+  +'<section class="blk"><label class="check"><input type="checkbox" id="f_rem"'+(dv('f_rem',true)?' checked':'')+'>'+t('co_rem')+'</label><p class="note" style="margin-left:36px">'+t('co_remwhen')+'</p></section>'
+  +'<section class="blk"><div class="line"><span>'+t('co_sub')+'</span><b class="nums">'+usd(sub)+'</b></div><div class="line"><span>'+t('co_deliv')+'</span><b class="nums">'+usd(DELIV)+'</b></div>'+(S.kind?'<div class="line"><span>'+t('kind_k')+'</span><b class="nums">'+usd(KIND)+'</b></div>':'')
+  +'<div class="line t"><span>'+t('co_total')+'</span><span class="tot">'+usd(tot)+' <small class="note">'+amd(tot)+'</small></span></div>'
+  +'<button class="btn primary" style="width:100%;margin-top:16px" data-act="place">'+t('co_place')+' · '+usd(tot)+'</button></section>'}
+function place(){
+  grab();const d=S.draft,req=['f_rec','f_phone','f_addr','f_date','f_you','f_yphone'];let bad=0;
+  req.forEach(k=>{const e=$('#'+k),m=document.querySelector('[data-e='+k+']'),ok=e&&String(e.value).trim();
+    if(e)e.setAttribute('aria-invalid',ok?'false':'true');if(m)m.textContent=ok?'':t('req');if(!ok)bad++});
+  if(bad){const f=document.querySelector('[aria-invalid=true]');if(f)f.focus();return}
+  const sub=cartSum(),o={id:'MF-'+(1000+S.orders.length+1),items:S.cart.map(c=>({id:c.id,q:c.q})),total:sub+DELIV+kindFee(),kind:S.kind,date:d.f_date,win:d.f_win||'asap',exact:d.f_exact||'',rec:d.f_rec.trim(),phone:d.f_phone.trim(),addr:d.f_addr.trim(),
+    occ:d.f_occ||'bd',card:d.card||'none',text:(d.card==='text'?(d.f_text||''):''),anon:!!d.f_anon,you:d.f_you.trim(),yphone:d.f_yphone.trim(),pay:d.pay||PAYS[0],remind:d.f_rem!==false,status:0,ts:Date.now(),paper:+(d.f_paper||0),ribbon:+(d.f_ribbon||0),com:(d.f_com||'').trim()};
+  sendToBot(o);if(TG)S.me=null;
+  S.orders.unshift(o);save();S.last=o.id;S.cart=[];S.draft={};S.kind=false;S.view='done';render();window.scrollTo(0,0)}
+function doneView(){const o=S.orders.find(x=>x.id===S.last);if(!o)return '';
+  return '<div class="done"><span class="label nums">'+esc(o.id)+'</span><h2>'+t('ok_t')+'</h2><p>'+t('ok_d')+'</p><div class="acts">'
+  +'<button class="btn primary" data-act="cabinet">'+t('ok_cab')+'</button>'
+  +(o.remind?'<a class="btn" target="_blank" rel="noopener" href="'+calLink(o)+'">'+t('ok_cal')+'</a>':'')
+  +'<button class="btn" data-act="studio">'+t('nav_studio')+'</button></div></div>'}
+function itemsText(o){return o.items.map(i=>{const p=PRODUCTS.find(x=>x.id===i.id);return pn(p)+' × '+i.q}).join(', ')}
+function whenText(o){return fdate(o.date)+', '+(o.win==='asap'?t('win_asap'):o.win==='exact'?o.exact:o.win)}
+function h2(s){return '<h2 style="font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;margin-bottom:32px">'+s+'</h2>'}
+function cabinetView(){
+  if(TG&&ORDER_API.url)return srvCabinet();
+  const rem=S.orders.filter(o=>o.remind),book={};S.orders.forEach(o=>{book[o.rec+o.addr]=o});
+  const ol=S.orders.length?S.orders.map(o=>'<div class="ord"><div class="h"><b class="nums">'+esc(o.id)+' · '+usd(o.total)+'</b><span class="label" style="'+(o.status===5?'color:var(--ink)':'')+'">'+T[S.lang].st[o.status]+'</span></div>'
+    +'<div class="muted">'+esc(itemsText(o))+'<br>'+esc(o.rec)+' · '+esc(o.addr)+'<br>'+esc(whenText(o))+(o.kind?'<br>'+t('cab_kind'):'')+'</div><div class="prog" aria-hidden="true">'+[0,1,2,3,4,5].map(i=>'<i class="'+(i<=o.status?'on':'')+'"></i>').join('')+'</div>'
+    +'<button class="btn sm" data-act="reorder" data-v="'+esc(o.id)+'">'+t('reorder')+'</button></div>').join(''):emptyBox(t('cab_none'),'shop',t('back'));
+  const rl=rem.length?rem.map(o=>'<div class="ord"><div class="h"><b>'+fdate(nextYear(o.date))+'</b><span class="label">'+t('o_'+o.occ)+'</span></div><div class="muted">'+esc(o.rec)+'</div><div class="acts"><a class="btn sm" target="_blank" rel="noopener" href="'+calLink(o)+'">'+t('to_cal')+'</a><button class="btn sm" data-act="reorder" data-v="'+esc(o.id)+'">'+t('reorder')+'</button></div></div>').join(''):'<p class="muted ord">'+t('cab_none')+'</p>';
+  const bl=Object.values(book).length?Object.values(book).map(o=>'<div class="line"><span><b>'+esc(o.rec)+'</b><br><span class="muted">'+esc(o.addr)+'</span></span><span class="muted nums">'+esc(o.phone)+'</span></div>').join(''):'<p class="muted ord">'+t('cab_none')+'</p>';
+  return h2(t('cab_t'))+(TG?'':'<p class="note" style="margin:-16px 0 24px">'+t('cab_local')+'</p>')+'<section class="blk"><span class="label">'+t('cab_orders')+'</span>'+ol+'</section><section class="blk"><span class="label">'+t('cab_rem')+'</span>'+rl+'</section><section class="blk"><span class="label">'+t('cab_book')+'</span>'+bl+'</section>'}
+const BTN=['b_acc','b_bui','b_pho','b_cou','b_don'];
+function studioView(){
+  const o=S.orders.find(x=>x.id===S.last)||S.orders[0];
+  const head=h2(t('bot_t'))+'<p class="lead">'+t('bot_hint')+'</p>';
+  if(!o)return head+emptyBox(t('bot_none'),'shop',t('back'));
+  const m=t('msg_new')+' '+o.id+'\n\n'+t('m_it')+': '+itemsText(o)+'\n'+t('m_rec')+': '+o.rec+'\n'+t('m_ph')+': '+o.phone+'\n'+t('m_ad')+': '+o.addr+'\n'+t('m_wh')+': '+whenText(o)+'\n'+t('m_ca')+': '+(o.card==='text'?'«'+o.text+'»':t('nocard'))+(o.anon?' ('+t('anon')+')':'')+'\n'+t('m_wrap')+': '+t('papers')[o.paper||0]+', '+t('ribbons')[o.ribbon||0]+(o.com?'\n'+t('m_com')+': '+o.com:'')+'\n'+t('m_sum')+': '+usd(Math.round((o.total-DELIV-(o.kind?KIND:0))*0.7))+(o.kind?'\n'+t('m_kind'):'')+'\n\n'+T[S.lang].st[o.status];
+  return head+'<div class="tg-win"><span class="label">May Flowers · Studio bot</span><div class="msg">'+esc(m)+'</div><div class="kb">'+BTN.map((b,i)=>'<button data-act="adv" data-v="'+o.id+'|'+i+'"'+(o.status===i?'':' disabled')+'>'+t(b)+'</button>').join('')+'</div></div><p class="note" style="margin-top:16px;max-width:480px">'+t('bot_rule')+'</p>'}
+function render(){
+  const L=T[S.lang];document.documentElement.lang=S.lang;
+  document.querySelectorAll('[data-i]').forEach(e=>{e.textContent=L[e.dataset.i]});
+  document.querySelectorAll('.top nav .tab').forEach(b=>b.setAttribute('aria-current',String(b.dataset.view===S.view||(S.view==='checkout'&&b.dataset.view==='shop')||(S.view==='done'&&b.dataset.view==='cabinet'))));
+  document.querySelectorAll('#langs .tab').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lang===S.lang)));
+  document.querySelectorAll('#modes .tab').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===S.mode)));
+  document.body.classList.toggle('tg',S.mode==='tg');
+  $('#cartBtn').textContent=L.cart+' · '+cartCount();
+  if(S._tl!==S.lang){S._tl=S.lang;$('#tickHost').innerHTML=marquee()}
+  const v={shop:shopView,checkout:checkoutView,cabinet:cabinetView,studio:studioView,done:doneView}[S.view];
+  $('#main').innerHTML='<div class="view">'+v()+'</div>';
+  crLayout();crCenter();reelMount();
+  chrome();
+}
+function chrome(){const L=T[S.lang];$('#cartBtn').textContent=L.cart+' · '+cartCount();
+  const n=cartCount();$('#stickyHost').innerHTML=(S.view==='shop'&&n&&!TG)?'<div class="sticky"><button class="btn ink" data-act="checkout">'+L.cart+' · '+n+' · '+usd(cartSum())+'</button></div>':'';tgSync();
+}
+function go(v){grab();S.view=v;render();window.scrollTo(0,0)}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data-view],[data-lang],[data-mode],#logo,#cartBtn');if(!b)return;
+  if(b.id==='logo')return go('shop');if(b.id==='cartBtn')return go(cartCount()?'checkout':'shop');
+  if(b.dataset.view)return go(b.dataset.view);
+  if(b.dataset.lang){grab();S.lang=b.dataset.lang;return render()}
+  if(b.dataset.mode){S.mode=b.dataset.mode;return render()}
+  const a=b.dataset.act,v=b.dataset.v;
+  if(a==='add')add(+v);else if(a==='filter'){S.filter=v;render()}
+  else if(a==='catalog'){const c=$('#catalog');if(c)c.scrollIntoView({behavior:'smooth'})}
+  else if(a==='mgr')toast(t('mgr'));
+  else if(a==='checkout'||a==='cabinet'||a==='studio'||a==='shop')go(a);
+  else if(a==='inc'||a==='dec'){grab();const c=S.cart.find(x=>x.id===+v);if(c){c.q+=a==='inc'?1:-1;if(c.q<1)S.cart=S.cart.filter(x=>x!==c)}render()}
+  else if(a==='ai'){grab();const n=(S.draft.f_rec||'').trim();S.draft.f_text=t(S.draft.f_tone||'ai_warm').replace('{n}',n||'').replace(/^[,\s]+/,'');render()}
+  else if(a==='place')place();
+  else if(a==='mereload'){meLoad()}
+  else if(a==='srvre'){const o=(S.me&&S.me.data&&S.me.data.orders||[]).find(x=>x.id===v);if(o){S.cart=o.items.map(i=>({id:+i.sku||(PRODUCTS.find(p=>p.n.ru===i.name)||{}).id,q:+i.qty||1})).filter(i=>i.id);S.draft={f_rec:o.recipient.name||'',f_phone:o.recipient.phone||'',f_addr:o.recipient.address||'',f_occ:o.occasion||'bd'};go('checkout')}}
+  else if(a==='remdel'){meApi('/api/reminders/delete',{method:'POST',body:JSON.stringify({id:+v})}).then(meLoad).catch(()=>toast(t('cab_err')))}
+  else if(a==='snd'){REEL.muted=!REEL.muted;if(!REEL.muted)REEL.play().catch(()=>{});reelBtn()}
+  else if(a==='aiex'){S.ai.q=t(v);aiAsk()}
+  else if(a==='aistop'){if(AI_CTL)AI_CTL.abort()}
+  else if(a==='aicard'){S.draft.card='text';S.draft.f_text=S.ai.card;toast(t('ai_used'))}
+  else if(a==='pick'){crSelect(+v)}
+  else if(a==='pq'){S.pq=Math.max(1,Math.min(101,S.pq+(+v)));$('#pickPanel').innerHTML=pickPanel()}
+  else if(a==='addstem'){const p=PRODUCTS.find(x=>x.id===S.pick);if(p){const c=S.cart.find(x=>x.id===p.id);c?c.q+=S.pq:S.cart.push({id:p.id,q:S.pq});chrome();toast(pn(p)+' × '+S.pq)}}
+  else if(a==='kind'){S.kind=!S.kind;render();toast(S.kind?t('kind_on').split(' · ')[0]:t('kind_add'))}
+  else if(a==='reorder'){const o=S.orders.find(x=>x.id===v);if(o){S.cart=o.items.map(i=>({id:i.id,q:i.q}));S.draft={f_rec:o.rec,f_phone:o.phone,f_addr:o.addr,f_occ:o.occ,f_you:o.you,f_yphone:o.yphone};go('checkout')}}
+  else if(a==='adv'){const [id,i]=v.split('|'),o=S.orders.find(x=>x.id===id);if(o&&o.status===+i){o.status=+i+1;save();render();toast(T[S.lang].st[o.status])}}
+});
+document.addEventListener('submit',e=>{if(e.target.id==='aiForm'){e.preventDefault();aiAsk()}});
+document.addEventListener('input',e=>{if(e.target.id==='ai_q')S.ai.q=e.target.value});
+document.addEventListener('keydown',e=>{if(e.target.id==='ai_q'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();aiAsk()}});
+document.addEventListener('change',e=>{if(S.view!=='checkout')return;const id=e.target.id,nm=e.target.name;if(nm==='card'||id==='f_win'||id==='f_kind'){grab();render()}});
+load();render();
+if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){new MutationObserver(()=>document.querySelectorAll('animateTransform').forEach(x=>x.remove())).observe(document.body,{childList:true,subtree:true});document.querySelectorAll('animateTransform').forEach(x=>x.remove())}
+
+/* static semicircle: centre flowers lowest and largest, edges smaller and higher */
+function crSelect(id){S.pick=id;document.querySelectorAll('.cr-item').forEach(x=>{const on=+x.dataset.v===id;x.classList.toggle('on',on);x.setAttribute('aria-pressed',String(on))});
+  crLayout();const f=$('#fridge');if(f)f.classList.add('has-pick');const pp=$('#pickPanel');if(pp)pp.innerHTML=pickPanel()}
+function crLayout(){const items=document.querySelectorAll('.cr-item');if(!items.length)return;const st=$('#stage'),w=st.clientWidth,n=items.length,iw=items[0].offsetWidth,gap=(w-iw*.75)/(n-1);
+  items.forEach(el=>{const k=+el.dataset.k,u=k/(n-1)*2-1,dp=Math.cos(u*Math.PI*.45),x=(k-(n-1)/2)*gap,s=.72+.28*dp,on=el.classList.contains('on'),y=-(1-dp)*(w>600?70:48)-(on?20:0);
+    el.style.transform='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px) scale('+(on?s*1.06:s).toFixed(3)+')';el.style.zIndex=String(on?200:Math.round(dp*100))})}
+function crCenter(){const sc=$('#stageScroll');if(sc&&sc.scrollWidth>sc.clientWidth)sc.scrollLeft=(sc.scrollWidth-sc.clientWidth)/2}
+window.addEventListener('resize',crLayout);
+
+/* hero reel: one persistent <video>, moved into the slot after each render so playback is not restarted */
+function reelBtn(){const b=document.querySelector('.snd');if(b){b.textContent=REEL.muted?t('snd_on'):t('snd_off');b.setAttribute('aria-pressed',String(!REEL.muted))}}
+function reelMount(){const s=document.getElementById('reelSlot');if(!s)return;REEL.setAttribute('aria-label',t('hero_vid'));s.insertBefore(REEL,s.firstChild);if(REEL.autoplay||!REEL.paused)REEL.play().catch(()=>{});reelBtn()}
+
+/* Sends the order to the studio bot (bot.py, POST /api/orders). Bouquet and wrapping names go in Russian for the studios. */
+function sendToBot(o){if(!ORDER_API.url)return;
+  const R=T.ru,abs=u=>{try{return new URL(u,location.href).href}catch(e){return ''}};
+  const items=o.items.map(i=>{const p=PRODUCTS.find(x=>x.id===i.id);return{sku:p.id,name:p.n.ru,qty:i.q,price_usd:p.usd,composition:p.k.ru,image_url:abs(p.img)}});
+  const goods=items.reduce((s,i)=>s+i.price_usd*i.qty,0);
+  const body={id:o.id,items,total_usd:o.total,payout_usd:Math.round(goods*0.7),
+    delivery:{date:o.date,window:o.win,exact_time:o.exact},recipient:{name:o.rec,phone:o.phone,address:o.addr},
+    sender:{name:o.you,phone:o.yphone,anonymous:o.anon},occasion:o.occ,card:{type:o.card,text:o.text},
+    wrapping:{paper:R.papers[o.paper||0],ribbon:R.ribbons[o.ribbon||0]},kindness:!!o.kind,comment:o.com,payment:{method:o.pay,status:'demo'},lang:S.lang,remind:!!o.remind};
+  fetch(ORDER_API.url.replace(/\/$/,'')+'/api/orders',{method:'POST',headers:TG?{'Content-Type':'application/json','X-Telegram-Init-Data':TG.initData}:{'Content-Type':'application/json','X-Intake-Key':ORDER_API.key},body:JSON.stringify(body)})
+    .then(r=>{if(!r.ok)throw r.status;if(TG)try{TG.HapticFeedback.notificationOccurred('success')}catch(e){}}).catch(()=>toast(t('send_fail')))}
+
+/* Telegram mini app: same page inside Telegram, with Telegram's own main and back buttons */
+function tgSync(){if(!TG)return;
+  const MB=TG.MainButton,BB=TG.BackButton,n=cartCount();let txt=null,fn=null;
+  if(S.view==='checkout'&&n){txt=t('co_place')+' · '+usd(cartSum()+DELIV+kindFee());fn=()=>place()}
+  else if(n&&S.view!=='done'){txt=t('cart')+' · '+n+' · '+usd(cartSum());fn=()=>go('checkout')}
+  if(TG._mb){MB.offClick(TG._mb);TG._mb=null}
+  if(txt){TG._mb=()=>{try{TG.HapticFeedback.impactOccurred('light')}catch(e){}fn()};MB.setText(txt);MB.onClick(TG._mb);MB.show()}else MB.hide();
+  if(TG._bb){BB.offClick(TG._bb);TG._bb=null}
+  if(S.view!=='shop'){TG._bb=()=>go('shop');BB.onClick(TG._bb);BB.show()}else BB.hide()}
+function tgInit(WA){TG=WA;try{WA.ready();WA.expand()}catch(e){}
+  document.body.classList.add('tgapp');S.mode='tg';
+  document.documentElement.setAttribute('data-theme',WA.colorScheme==='dark'?'dark':'light');
+  try{WA.MainButton.setParams({color:'#c9306a',text_color:'#ffffff'})}catch(e){}
+  const u=(WA.initDataUnsafe&&WA.initDataUnsafe.user)||{};
+  if(u.language_code&&T[u.language_code.slice(0,2)])S.lang=u.language_code.slice(0,2);
+  const nm=[u.first_name,u.last_name].filter(Boolean).join(' ');if(nm&&!S.draft.f_you)S.draft.f_you=nm;
+  render()}
+function tgBoot(){const WA=window.Telegram&&window.Telegram.WebApp;if(WA&&WA.initData)tgInit(WA)}
+if(!(window.Telegram&&window.Telegram.WebApp)&&/tgWebAppData/.test(location.hash)){const sc=document.createElement('script');sc.src='https://telegram.org/js/telegram-web-app.js';sc.onload=tgBoot;document.head.appendChild(sc)}else tgBoot();
+
+/* Personal account inside Telegram: orders, bouquet photos and reminders come from the bot server */
+const ST_IDX={new:0,offered:0,unassigned:0,accepted:1,built:3,courier:4,delivered:5};
+function meApi(path,opt){opt=opt||{};return fetch(ORDER_API.url.replace(/\/$/,'')+path,Object.assign({},opt,{headers:Object.assign({'Content-Type':'application/json','X-Telegram-Init-Data':TG.initData},opt.headers||{})}))
+  .then(r=>{if(!r.ok)throw r.status;return r})}
+function meLoad(){S.me={status:'loading',data:S.me&&S.me.data};if(S.view==='cabinet')render();
+  meApi('/api/me').then(r=>r.json()).then(d=>{S.me={status:'ok',data:d};if(S.view==='cabinet')render()})
+    .catch(()=>{S.me={status:'err',data:S.me.data};if(S.view==='cabinet')render()})}
+function srvWhen(d){d=d||{};return (d.date?fdate(d.date):'')+', '+(d.window==='asap'?t('win_asap'):d.window==='exact'?(d.exact_time||''):(d.window||''))}
+function srvCabinet(){
+  if(!S.me){setTimeout(meLoad,0);return h2(t('cab_t'))+'<p class="muted">'+t('cab_loading')+'</p>'}
+  const d=S.me.data,stt=S.me.status;
+  let head=h2(t('cab_t'))+'<div class="acts" style="margin:-16px 0 24px"><button class="btn sm" data-act="mereload"'+(stt==='loading'?' disabled':'')+'>'+(stt==='loading'?t('cab_loading'):t('cab_refresh'))+'</button></div>';
+  if(stt==='err')head+='<p class="err" style="margin-bottom:16px">'+t('cab_err')+'</p>';
+  if(!d)return head;
+  const stLabel=s=>s==='cancelled'?t('st_cancel'):(s==='new'||s==='offered'||s==='unassigned')?t('st_wait'):T[S.lang].st[ST_IDX[s]];
+  const ol=d.orders.length?d.orders.map(o=>{const i=ST_IDX[o.status],cancel=o.status==='cancelled';
+    return '<div class="ord"><div class="h"><b class="nums">'+esc(o.id)+' · '+usd(o.total_usd||0)+'</b><span class="label" style="'+(o.status==='delivered'?'color:var(--ink)':'')+'">'+esc(stLabel(o.status))+'</span></div>'
+    +'<div class="muted">'+esc(o.items.map(x=>{const p=PRODUCTS.find(p=>p.id===+x.sku);return (p?pn(p):x.name)+' × '+x.qty}).join(', '))+'<br>'+esc(o.recipient.name||'')+' · '+esc(o.recipient.address||'')+'<br>'+esc(srvWhen(o.delivery))+'</div>'
+    +(o.has_photo?'<figure class="ord-photo"><img data-photo="'+esc(o.id)+'" alt="'+esc(t('cab_photo'))+'" width="360" height="450"><figcaption class="note">'+t('cab_photo')+'</figcaption></figure>':'')
+    +(cancel?'':'<div class="prog" aria-hidden="true">'+[0,1,2,3,4,5].map(k=>'<i class="'+(k<=i?'on':'')+'"></i>').join('')+'</div>')
+    +'<button class="btn sm" data-act="srvre" data-v="'+esc(o.id)+'">'+t('reorder')+'</button></div>'}).join(''):emptyBox(t('cab_none'),'shop',t('back'));
+  const rl=d.reminders.length?d.reminders.map(r=>'<div class="ord"><div class="h"><b>'+fdate(r.target)+'</b></div><div class="muted">'+esc(r.label)+'</div><div class="acts"><button class="btn sm" data-act="shop">'+t('reorder')+'</button><button class="btn sm" data-act="remdel" data-v="'+r.id+'">'+t('rem_del')+'</button></div></div>').join(''):'<p class="muted ord">'+t('rem_none')+'</p>';
+  const bl=d.recipients.length?d.recipients.map(p=>'<div class="line"><span><b>'+esc(p.name||'')+'</b><br><span class="muted">'+esc(p.address||'')+'</span></span><span class="muted nums">'+esc(p.phone||'')+'</span></div>').join(''):'<p class="muted ord">'+t('cab_none')+'</p>';
+  setTimeout(mePhotos,0);
+  return head+'<section class="blk"><span class="label">'+t('cab_orders')+'</span>'+ol+'</section><section class="blk"><span class="label">'+t('cab_rem')+'</span>'+rl+'</section><section class="blk"><span class="label">'+t('cab_book')+'</span>'+bl+'</section>'}
+const PHOTO_URL={};
+function mePhotos(){document.querySelectorAll('img[data-photo]').forEach(img=>{const id=img.dataset.photo;
+  if(PHOTO_URL[id]){img.src=PHOTO_URL[id];return}
+  meApi('/api/photo/'+encodeURIComponent(id)).then(r=>r.blob()).then(b=>{PHOTO_URL[id]=URL.createObjectURL(b);document.querySelectorAll('img[data-photo="'+CSS.escape(id)+'"]').forEach(x=>x.src=PHOTO_URL[id])}).catch(()=>{})})}
+
+</script>
+</body></html>
