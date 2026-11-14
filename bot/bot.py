@@ -115,12 +115,12 @@ def kb(buttons):
     return {"inline_keyboard": [[btn(t, d) for t, d in row] for row in buttons]}
 
 
-def notify_admins(text, photo=None):
+def notify_admins(text, photo=None, buttons=None):
     for a in ADMIN_IDS:
         if photo:
-            tg("sendPhoto", chat_id=a, photo=photo, caption=text[:1024], parse_mode="HTML")
+            tg("sendPhoto", chat_id=a, photo=photo, caption=text[:1024], parse_mode="HTML", reply_markup=kb(buttons))
         else:
-            send(a, text)
+            send(a, text, buttons)
 
 
 # ---------------------------------------------------------------- база
@@ -449,7 +449,7 @@ def create_order(o, client_chat=None):
     q("INSERT INTO orders(id,payload,status,created,client_chat) VALUES(?,?,?,?,?)",
       (oid, json.dumps(o, ensure_ascii=False), "new", time.time(), client_chat))
     src = "из мини-апки" if client_chat else "с сайта"
-    notify_admins(f"🆕 Новый заказ {src}\n\n" + admin_text(o, "new"))
+    notify_admins(f"🆕 Новый заказ {src}\n\n" + admin_text(o, "new"), buttons=[[("📂 Открыть заказ", f"adm:o:{oid}")]])
     if client_chat:
         notify_client(oid, "received")
         if o.get("remind"):
@@ -469,7 +469,8 @@ def dispatch(order_id):
     if not studios:
         q("UPDATE orders SET status='unassigned' WHERE id=?", (order_id,))
         notify_admins(f"⚠️ Заявку <b>{esc(order_id)}</b> не принял никто. Свяжитесь со студиями вручную "
-                      f"или перезапустите раздачу: /retry {esc(order_id)}")
+                      f"или раздайте заново.",
+                      buttons=[[("🔁 Раздать заново", f"adm:retry:{order_id}"), ("❌ Отменить", f"adm:cx:{order_id}")]])
         return
     s = studios[0]
     photo = next((i.get("image_url") for i in o.get("items", []) if str(i.get("image_url", "")).startswith("http")), None)
@@ -591,7 +592,7 @@ def handle_message(m):
             notify_admins(f"✅ Подключилась студия «{esc(inv['name'])}»")
             return
         if is_admin(uid):
-            send(chat, "Вы админ May Flowers.\n\n" + HELP_ADMIN)
+            admin_home(chat)
         elif studio_by_chat(chat):
             send(chat, HELP_STUDIO)
         else:
@@ -599,6 +600,13 @@ def handle_message(m):
         return
 
     if is_admin(uid):
+        if text in ADMIN_BUTTONS:
+            admin_button(chat, ADMIN_BUTTONS[text])
+            return
+        st = ADMIN_STATE.pop(chat, None)
+        if st and text and not text.startswith("/"):
+            admin_state_input(chat, st, text)
+            return
         if handle_admin(chat, cmd, arg):
             return
 
@@ -772,8 +780,8 @@ def client_free_text(chat, m, text):
     frm = m.get("from") or {}
     name = " ".join(x for x in [frm.get("first_name"), frm.get("last_name")] if x) or "клиент"
     user = f" @{esc(frm['username'])}" if frm.get("username") else ""
-    notify_admins(f"💬 Сообщение от {esc(name)}{user} (ID <code>{chat}</code>):\n{esc(text[:3000])}\n\n"
-                  f"Ответить: <code>/reply {chat} </code>текст")
+    notify_admins(f"💬 Сообщение от {esc(name)}{user}:\n{esc(text[:3000])}",
+                  buttons=[[("✍️ Ответить", f"adm:rp:{chat}")]])
     send(chat, esc(CL[user_lang(frm)]["sent"]))
 
 
@@ -852,6 +860,195 @@ def catalog_callback(cb, answer):
             tg("sendPhoto", chat_id=chat, photo=photo, caption=caption, parse_mode="HTML", reply_markup=kb(rows))
         else:
             edit(chat, mid, caption, rows)
+    answer()
+
+
+# ---------------------------------------------------------------- админка на кнопках
+
+ADMIN_KB = [["📋 Заказы", "🏪 Студии"], ["➕ Пригласить студию", "🧪 Тестовый заказ"], ["👀 Меню клиента", "❓ Помощь"]]
+ADMIN_BUTTONS = {"📋 Заказы": "orders", "🏪 Студии": "studios", "➕ Пригласить студию": "invite",
+                 "🧪 Тестовый заказ": "test", "👀 Меню клиента": "client", "❓ Помощь": "help", "⚙️ Админка": "home"}
+ADMIN_STATE = {}  # chat_id -> ("invite",) или ("reply", client_chat)
+ADMIN_HELP = (
+    "<b>Как пользоваться</b>\n\n"
+    "📋 <b>Заказы</b> — последние заказы. Нажмите на заказ: увидите всё по нему, фото букета, "
+    "можно раздать заново или отменить.\n"
+    "🏪 <b>Студии</b> — список студий. Нажмите на студию: пауза, порядок раздачи, удаление.\n"
+    "➕ <b>Пригласить студию</b> — бот спросит название и даст одноразовую ссылку для флориста.\n"
+    "🧪 <b>Тестовый заказ</b> — проверить, как заявка уходит студиям.\n"
+    "👀 <b>Меню клиента</b> — посмотреть бота глазами покупателя (вернуться: «⚙️ Админка»).\n\n"
+    "Когда клиент пишет в бот, вам приходит его сообщение с кнопкой «✍️ Ответить»."
+)
+
+
+def admin_markup():
+    return {"keyboard": [[{"text": t} for t in row] for row in ADMIN_KB], "resize_keyboard": True, "is_persistent": True}
+
+
+def admin_home(chat):
+    tg("sendMessage", chat_id=chat, parse_mode="HTML", reply_markup=admin_markup(),
+       text="⚙️ <b>Админка May Flowers</b>\nВыберите раздел на кнопках внизу.")
+
+
+def admin_button(chat, action):
+    ADMIN_STATE.pop(chat, None)
+    if action == "home":
+        admin_home(chat)
+    elif action == "orders":
+        admin_orders(chat)
+    elif action == "studios":
+        admin_studios(chat)
+    elif action == "invite":
+        ADMIN_STATE[chat] = ("invite",)
+        send(chat, "Напишите название студии одним сообщением, например «Цветы на Абовяна».", [[("Отмена", "adm:x")]])
+    elif action == "test":
+        handle_admin(chat, "/test", "")
+    elif action == "client":
+        rows = [[{"text": t} for t in row] for row in MENU["ru"]] + [[{"text": "⚙️ Админка"}]]
+        tg("sendMessage", chat_id=chat, text="Так меню видят клиенты. Вернуться: «⚙️ Админка».",
+           reply_markup={"keyboard": rows, "resize_keyboard": True, "is_persistent": True})
+    elif action == "help":
+        send(chat, ADMIN_HELP)
+
+
+def admin_state_input(chat, st, text):
+    if st[0] == "invite":
+        handle_admin(chat, "/invite", text.strip())
+    elif st[0] == "reply":
+        r = send(st[1], esc(CL["ru"]["manager"]) + "\n" + esc(text.strip()))
+        send(chat, "Ответ отправлен ✅" if r else "Не доставлено: клиент мог заблокировать бота.")
+
+
+def orders_view():
+    rows = q("SELECT id, status FROM orders ORDER BY created DESC LIMIT 15")
+    if not rows:
+        return "Заказов пока нет.", [[("🧪 Создать тестовый заказ", "adm:test")]]
+    return ("<b>Последние заказы</b>\nНажмите на заказ, чтобы открыть.",
+            [[(f"{r['id']} · {STATUS_TEXT.get(r['status'], r['status'])}", f"adm:o:{r['id']}")] for r in rows])
+
+
+def admin_orders(chat, mid=None):
+    text, rows = orders_view()
+    edit(chat, mid, text, rows) if mid else send(chat, text, rows)
+
+
+def order_view(order_id):
+    row, o = get_order(order_id)
+    if not row:
+        return "Заказ не найден.", [[("↩️ К заказам", "adm:orders")]]
+    st = q("SELECT name FROM studios WHERE id=?", (row["studio_id"],), one=True)
+    rows = []
+    if row["status"] in ("new", "offered", "unassigned"):
+        rows.append([("🔁 Раздать заново", f"adm:retry:{order_id}")])
+    if row["photo"]:
+        rows.append([("📸 Фото букета", f"adm:ph:{order_id}")])
+    if row["status"] not in ("cancelled", "delivered"):
+        rows.append([("❌ Отменить заказ", f"adm:cx:{order_id}")])
+    rows.append([("↩️ К заказам", "adm:orders")])
+    return admin_text(o, row["status"], st["name"] if st else None), rows
+
+
+def studios_view():
+    rows = q("SELECT * FROM studios ORDER BY priority, id")
+    btns = [[(f"{'✅' if r['active'] else '⏸'} {r['name']}", f"adm:s:{r['id']}")] for r in rows]
+    btns.append([("➕ Пригласить студию", "adm:inv")])
+    if not rows:
+        return "Студий пока нет. Пригласите первую 👇", btns
+    return "<b>Студии</b>\nСверху вниз — порядок, в котором студии получают заявки. Нажмите на студию.", btns
+
+
+def admin_studios(chat, mid=None):
+    text, rows = studios_view()
+    edit(chat, mid, text, rows) if mid else send(chat, text, rows)
+
+
+def studio_view(sid):
+    r = q("SELECT * FROM studios WHERE id=?", (sid,), one=True)
+    if not r:
+        return "Студия не найдена.", [[("↩️ К студиям", "adm:studios")]]
+    done = q("SELECT COUNT(*) AS n FROM orders WHERE studio_id=? AND status='delivered'", (sid,), one=True)["n"]
+    active = q("SELECT COUNT(*) AS n FROM orders WHERE studio_id=? AND status IN ('accepted','built','courier')",
+               (sid,), one=True)["n"]
+    joined = datetime.fromtimestamp(r["joined_at"] or 0).strftime("%d.%m.%Y")
+    text = (f"🏪 <b>{esc(r['name'])}</b>\n"
+            f"Статус: {'✅ получает заявки' if r['active'] else '⏸ на паузе'}\n"
+            f"Подключена: {joined}\nДоставлено заказов: {done}\nСейчас в работе: {active}")
+    rows = [[("⏸ Поставить на паузу", f"adm:sp:{sid}") if r["active"] else ("▶️ Включить", f"adm:sr:{sid}")],
+            [("⬆️ Получать раньше", f"adm:up:{sid}"), ("⬇️ Получать позже", f"adm:dn:{sid}")],
+            [("🗑 Удалить студию", f"adm:sd:{sid}")],
+            [("↩️ К студиям", "adm:studios")]]
+    return text, rows
+
+
+def admin_callback(cb, answer):
+    chat = cb["message"]["chat"]["id"]
+    mid = cb["message"]["message_id"]
+    parts = cb.get("data", "").split(":")
+    act = parts[1] if len(parts) > 1 else ""
+    arg = ":".join(parts[2:])
+
+    def show(view):
+        text, rows = view
+        if cb["message"].get("photo"):
+            send(chat, text, rows)
+        else:
+            edit(chat, mid, text, rows)
+
+    if act == "x":
+        ADMIN_STATE.pop(chat, None)
+        edit(chat, mid, "Отменено.")
+    elif act == "orders":
+        show(orders_view())
+    elif act == "o":
+        show(order_view(arg))
+    elif act == "retry":
+        handle_admin(chat, "/retry", arg)
+        show(order_view(arg))
+    elif act == "cx":
+        show((f"Отменить заказ <b>{esc(arg)}</b>? Студия получит сообщение «не собирайте».",
+              [[("Да, отменить", f"adm:cxy:{arg}"), ("Нет", f"adm:o:{arg}")]]))
+    elif act == "cxy":
+        handle_admin(chat, "/cancel", arg)
+        show(order_view(arg))
+    elif act == "ph":
+        row, _ = get_order(arg)
+        if row and row["photo"]:
+            tg("sendPhoto", chat_id=chat, photo=row["photo"], caption=f"Фото букета {arg}")
+    elif act == "test":
+        handle_admin(chat, "/test", "")
+    elif act == "studios":
+        show(studios_view())
+    elif act == "inv":
+        ADMIN_STATE[chat] = ("invite",)
+        send(chat, "Напишите название студии одним сообщением, например «Цветы на Абовяна».", [[("Отмена", "adm:x")]])
+    elif act == "s":
+        show(studio_view(int(arg)))
+    elif act in ("sp", "sr"):
+        q("UPDATE studios SET active=? WHERE id=?", (0 if act == "sp" else 1, int(arg)))
+        show(studio_view(int(arg)))
+    elif act in ("up", "dn"):
+        sid = int(arg)
+        order = [r["id"] for r in q("SELECT id FROM studios ORDER BY priority, id")]
+        if sid in order:
+            i = order.index(sid)
+            j = i - 1 if act == "up" else i + 1
+            if 0 <= j < len(order):
+                order[i], order[j] = order[j], order[i]
+            for n, x in enumerate(order):
+                q("UPDATE studios SET priority=? WHERE id=?", ((n + 1) * 10, x))
+            answer(f"Теперь {order.index(sid) + 1}-я по очереди")
+        show(studio_view(sid))
+        return
+    elif act == "sd":
+        r = q("SELECT name FROM studios WHERE id=?", (int(arg),), one=True)
+        show((f"Удалить студию «{esc(r['name'] if r else '?')}»? Новые заявки ей приходить перестанут.",
+              [[("Да, удалить", f"adm:sdy:{arg}"), ("Нет", f"adm:s:{arg}")]]))
+    elif act == "sdy":
+        q("DELETE FROM studios WHERE id=?", (int(arg),))
+        show(studios_view())
+    elif act == "rp":
+        ADMIN_STATE[chat] = ("reply", int(arg))
+        send(chat, "Напишите ответ клиенту одним сообщением.", [[("Отмена", "adm:x")]])
     answer()
 
 
@@ -963,6 +1160,12 @@ def handle_callback(cb):
 
     if data.startswith("cat:"):
         catalog_callback(cb, answer)
+        return
+    if data.startswith("adm:"):
+        if is_admin((cb.get("from") or {}).get("id")):
+            admin_callback(cb, answer)
+        else:
+            answer()
         return
     if not s:
         answer()
