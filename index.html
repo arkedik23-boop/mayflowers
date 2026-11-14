@@ -50,7 +50,7 @@ body.tg .tools{margin-left:0;width:100%}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .view{padding-block:48px}
 /* hero */
-.hero{display:grid;grid-template-columns:7fr 5fr;gap:48px;align-items:end;padding-bottom:48px}
+.hero{display:grid;grid-template-columns:7fr 5fr;gap:48px;align-items:center;padding-bottom:48px}
 .hero h1{font-size:clamp(40px,8vw,88px);font-weight:800;letter-spacing:-.045em;line-height:1.02;margin:16px 0 24px}
 .hero h1 .h-serif,.hero h1 .h-sans{display:block}
 .hero h1 .h-serif{font-family:'Bodoni Moda','Noto Serif Armenian','Didot','Bodoni 72',Georgia,serif;font-optical-sizing:auto;font-weight:400;letter-spacing:-.025em;font-size:1.06em;line-height:1}
@@ -187,9 +187,9 @@ body.tg .stage{height:300px;min-width:760px}body.tg .cr-item{--w:120px}body.tg .
 @media (max-width:720px){.stage-scroll{overflow-x:auto;scrollbar-width:none}.stage{height:300px;min-width:760px}.cr-item{--w:120px}}
 @media (prefers-reduced-motion:reduce){.cr-item.on .cr-img::before{animation:none}}
 /* hero reel */
-.reel{position:relative;width:min(100%,360px);aspect-ratio:9/16;max-width:100%;margin-left:auto;background:var(--tint);overflow:hidden}
+.reel{position:relative;width:min(100%,360px);aspect-ratio:9/16;max-width:100%;margin-left:auto;background:var(--tint);overflow:hidden;border-radius:28px;isolation:isolate}
 .reel video{width:100%;height:100%;object-fit:cover;display:block}
-.snd{position:absolute;right:12px;bottom:12px;z-index:2;min-height:40px;padding:8px 14px;border:0;border-radius:var(--r);background:rgba(0,0,0,.55);color:#fff;font-size:13px;font-weight:700}
+.snd{position:absolute;right:16px;bottom:16px;border-radius:999px!important;z-index:2;min-height:40px;padding:8px 14px;border:0;border-radius:var(--r);background:rgba(0,0,0,.55);color:#fff;font-size:13px;font-weight:700}
 .snd:hover{background:rgba(0,0,0,.75)}
 .gift figcaption{max-width:360px;margin-left:auto;text-wrap:pretty}
 @media (max-width:720px){.reel,.gift figcaption{margin-inline:auto}}
@@ -262,7 +262,7 @@ body.tgapp #modes,body.tgapp .top [data-view="studio"],body.tgapp #cartBtn{displ
 
 <script>
 /* Bot connection: after deploying the studio bot, put its address and INTAKE_KEY here. Empty url = demo, nothing is sent. */
-const ORDER_API={url:'',key:''};
+const ORDER_API={url:'https://mayflowers.185-192-246-4.sslip.io',key:'wEuYTuPr5th8H2zSylcdihwUjdkPX5FZ'};
 let TG=null; /* Telegram.WebApp when the page runs as a Telegram mini app */
 const T={
 ru:{by:'by Mais',cab_loading:'Загружаю ваши заказы…',cab_err:'Не удалось загрузить заказы. Проверьте интернет.',cab_refresh:'Обновить',cab_photo:'Фото вашего букета',rem_del:'Удалить',rem_none:'Напоминаний нет. Отметьте «Напомнить в следующем году» при заказе.',st_cancel:'Отменён',st_wait:'Ищем студию',cab_local:'История хранится в этом браузере. В Telegram кабинет общий для всех ваших устройств.',co_wrap:'Оформление',co_paper:'Упаковка',co_ribbon:'Лента',co_com:'Комментарий флористу',co_com_ph:'Например: без лилий, побольше зелени',m_wrap:'Оформление',m_com:'Комментарий',papers:['Фирменный крафт May Flowers','Белая бумага','Чёрная бумага','Без упаковки, в коробке'],ribbons:['Розовая атласная (фирменная)','Белая атласная','Красная атласная','Чёрная атласная'],send_fail:'Заказ сохранён, но не дошёл до студии. Мы свяжемся с вами.',hero_vid:'Маис дарит цветы незнакомым людям на улицах Еревана',snd_on:'Включить звук',snd_off:'Выключить звук',ai_k:'Умный помощник',ai_t:'Не знаете, что выбрать?',ai_d:'Напишите, кому и по какому поводу, что человек любит и какой бюджет. Помощник подберёт букеты из каталога и подскажет текст открытки.',ai_ph:'Например: маме на 60-летие, любит пионы, до $120',ai_btn:'Подобрать',ai_stop:'Стоп',ai_load:'Подбираю букеты…',ai_card:'Текст для открытки',ai_use:'Взять в открытку',ai_used:'Текст добавлен в открытку',ai_ex1:'Маме на день рождения',ai_ex2:'Девушке, хочу извиниться',ai_ex3:'Коллеге спасибо, до $50',ai_local:'Подобрано по ключевым словам',ai_none:'Не нашёл подходящего. Опишите иначе или напишите менеджеру.',ai_empty:'Напишите пару слов о поводе',ai_lang:'русском',fr_k:'Витрина · штучные цветы',fr_s:'Выберите цветы прямо из витрины, флорист соберёт из них букет. Или возьмите готовый из каталога.',fr_ready:'Готовые букеты',fr_hint:'Нажмите на цветок в витрине',fr_sel:'Выбрано',fr_per:'за стебель',fr_add:'В корзину',rib:'Подари цветы · Подари добро · Добрые цветы · Доставка по Еревану от 60 минут · Букет добра незнакомцу +$15 · ',kind_k:'Букет добра',kind_t:'Подари добро',kind_d:'Добавьте к заказу маленький букет для незнакомого человека. Маис или наша команда вручит его от вашего имени на улицах Еревана, а вы получите видео вручения.',kind_add:'Добавить к заказу · +$15',kind_on:'Добавлено · убрать',co_kind:'Букет добра незнакомцу (+$15)',co_kind_d:'Вручим от вашего имени и пришлём видео',m_kind:'Букет добра: да (мини-букет для вручения)',cab_kind:'Букет добра: видео придёт после вручения',hero_k:'Ереван · доставка из студий',less:'Убавить',more:'Добавить',nav_shop:'Магазин',nav_cab:'Кабинет',nav_studio:'Студия (бот)',m_site:'Сайт',m_tg:'Мини-апка',cart:'Корзина',
