@@ -19,10 +19,19 @@ function calLink(o){const d=nextYear(o.date).replace(/-/g,'');const e=ymd(new Da
   const title='May Flowers: '+(o.rec||'')+' ('+t('o_'+o.occ)+')';
   return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+d+'/'+e+'&details='+encodeURIComponent('Заказать цветы / Order flowers / Պատվիրել ծաղիկներ')}
 function art(p,eager){return '<img src="'+p.img+'" alt="'+esc(pn(p))+'" width="720" height="900"'+(eager?'':' loading="lazy"')+' decoding="async">'}
-const cartSum=()=>S.cart.reduce((a,c)=>a+PRODUCTS.find(p=>p.id===c.id).usd*c.q,0);
-const kindFee=()=>S.kind?KIND:0;
+/* bouquet of the day: active until local midnight */
+const promoEnd=()=>{const d=new Date();d.setHours(23,59,59,999);return d};
+const promoOn=()=>!!(PROMO&&PRODUCTS.find(p=>p.id===PROMO.id))&&Date.now()<promoEnd().getTime();
+const priceOf=c=>c.promo&&promoOn()&&c.id===PROMO.id?PROMO.usd:PRODUCTS.find(p=>p.id===c.id).usd;
+const cartSum=()=>S.cart.reduce((a,c)=>a+priceOf(c)*c.q,0);
 const cartCount=()=>S.cart.reduce((a,c)=>a+c.q,0);
-function add(id){const c=S.cart.find(x=>x.id===id);c?c.q++:S.cart.push({id,q:1});chrome();toast(t('add')+': '+pn(PRODUCTS.find(p=>p.id===id)))}
+function add(id,promo){promo=!!promo;const c=S.cart.find(x=>x.id===id&&!!x.promo===promo);c?c.q++:S.cart.push(promo?{id,q:1,promo:true}:{id,q:1});chrome();toast(t('add')+': '+pn(PRODUCTS.find(p=>p.id===id)))}
+function promoLeft(){const ms=Math.max(0,promoEnd()-Date.now()),h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return t('pr_left').replace('{t}',(h?h+'\u00a0'+t('pr_h')+' ':'')+m+'\u00a0'+t('pr_m'))}
+function promoBlock(){if(!promoOn())return '';const p=PRODUCTS.find(x=>x.id===PROMO.id),pr=usd(PROMO.usd);
+  return '<section class="promo" aria-labelledby="promoT"><div class="tintbox">'+art(p)+'<span class="promo-tag">\u2212'+Math.round((1-PROMO.usd/p.usd)*100)+'%</span></div><div class="promo-body"><p class="label">'+t('pr_k')+' · <span id="promoLeft" class="nums">'+promoLeft()+'</span></p><h2 id="promoT">'+esc(pn(p))+'</h2><p class="comp">'+esc(pk(p))+'</p>'
+  +'<p class="promo-price"><s class="nums">'+usd(p.usd)+' · '+amd(p.usd)+'</s><b class="nums">'+pr+'</b><small class="nums">'+amd(PROMO.usd)+'</small></p>'
+  +'<button class="btn primary" data-act="promo">'+t('pr_btn').replace('{p}',pr)+'</button><p class="note">'+t('pr_note')+'</p></div></section>'}
+setInterval(()=>{const el=document.getElementById('promoLeft');if(!el)return;if(!promoOn()){if(S.view==='shop')render();return}el.textContent=promoLeft()},30000);
 function marquee(){const s=('<span>'+esc(t('rib'))+'</span>').repeat(3);return '<div class="marq" role="marquee" aria-label="'+esc(t('rib'))+'"><div class="marq-track" aria-hidden="true">'+s+s+'</div></div>'}
 function fridge(){
   const st=PRODUCTS.filter(p=>p.stem);
@@ -37,9 +46,10 @@ function shopView(){
   const list=PRODUCTS.filter(p=>!p.stem&&(S.filter==='all'||p.occ.includes(S.filter)));
   return '<section class="hero"><div><p class="label">'+t('hero_k')+'</p><h1><span class="h-serif">'+t('hero_t1')+'</span> <span class="h-sans">'+t('hero_t2')+'</span></h1><p class="lead">'+t('hero_s')+'</p><button class="btn primary" data-act="catalog">'+t('hero_cta')+'</button></div>'
   +'<figure class="gift"><div class="reel" id="reelSlot"><button type="button" class="snd" data-act="snd" aria-pressed="false">'+t('snd_on')+'</button></div><figcaption class="label">'+t('hero_vid')+'</figcaption></figure></section>'
+  +promoBlock()
   +'<section class="ai" id="ai">'+aiInner()+'</section>'
   +'<ol class="steps"><li><span class="label">01</span><b>'+t('s1t')+'</b>'+t('s1d')+'</li><li><span class="label">02</span><b>'+t('s2t')+'</b>'+t('s2d')+'</li><li><span class="label">03</span><b>'+t('s3t')+'</b>'+t('s3d')+'</li></ol>'
-  +'<section class="kind"><div><p class="label">'+t('kind_k')+' · +$'+KIND+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
+  +'<section class="kind"><div><p class="label">'+t('kind_k')+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
   +'<div class="sec" id="catalog"><h2>'+t('cat_t')+'</h2><div class="tabs" role="group">'
   +['all'].concat(OCC).map(o=>'<button class="tab" data-act="filter" data-v="'+o+'" aria-pressed="'+(S.filter===o)+'">'+(o==='all'?t('f_all'):t('o_'+o))+'</button>').join('')+'</div></div>'
   +'<div class="grid">'+list.map(p=>'<article class="item"><div class="tintbox">'+art(p)+'</div><h3>'+esc(pn(p))+'</h3><p class="comp">'+esc(pk(p))+'</p>'

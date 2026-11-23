@@ -228,4 +228,26 @@ body.tgapp #modes,body.tgapp .top [data-view="studio"],body.tgapp #cartBtn{displ
 }
 @media (max-width:720px){.hero{grid-template-columns:1fr;gap:32px}.steps{grid-template-columns:1fr;gap:16px}.fields{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px}.view{padding-block:32px}.tools{margin-left:0;width:100%;justify-content:space-between}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.promo{display:grid;grid-template-columns:5fr 7fr;gap:24px 48px;align-items:center;border-top:1px solid var(--ink);padding-block:24px 48px}
+.promo .tintbox{position:relative;max-width:420px}
+.promo-tag{position:absolute;top:12px;left:12px;background:var(--accent);color:var(--accent-fg);font-weight:700;font-size:14px;line-height:1;padding:8px 10px;border-radius:999px;font-variant-numeric:tabular-nums}
+.promo h2{font-size:clamp(32px,5vw,56px);font-weight:800;letter-spacing:-.04em;line-height:1.05;margin:8px 0;text-wrap:balance}
+.promo .comp{color:var(--muted);margin-bottom:16px}
+.promo-price{display:flex;align-items:baseline;gap:8px 12px;flex-wrap:wrap;margin-bottom:16px}
+.promo-price s{color:var(--muted)}
+.promo-price b{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.02em;color:var(--accent)}
+.promo-price small{color:var(--muted)}
+.promo .note{margin-top:8px}
+.tagp{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-left:4px}
+.bn-top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:16px}
+.bn-top span{display:block;margin-bottom:4px}
+.bn-top b{font-size:16px}
+.bn-top .bn-bal{font-size:32px;letter-spacing:-.02em;line-height:1}
+.bn-bar{height:6px;background:var(--line);border-radius:999px;overflow:hidden}
+.bn-bar i{display:block;height:100%;background:var(--accent)}
+.bn-lv{list-style:none;padding:0;margin:16px 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.bn-lv li{border:1px solid var(--line);border-radius:var(--r);padding:12px;font-size:13px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.bn-lv li[aria-current=true]{border-color:var(--ink)}
+.bn-lv b{font-size:15px}
+@media (max-width:720px){.promo{grid-template-columns:1fr}.bn-top{grid-template-columns:1fr 1fr}.bn-top>div:first-child{grid-column:1/-1}.bn-lv{grid-template-columns:1fr 1fr}}
 </style>
