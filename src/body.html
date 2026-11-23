@@ -1,27 +1,15 @@
 <div id="app">
   <header class="top">
     <button class="logo" id="logo" type="button" aria-label="May Flowers"><span class="wm"><em>May</em>Flowers</span><small>by Mais</small></button>
-    <nav class="tabs" aria-label="Разделы">
-      <button class="tab" type="button" data-view="shop" data-i="nav_shop"></button>
-      <button class="tab" type="button" data-view="cabinet" data-i="nav_cab"></button>
-      <button class="tab" type="button" data-view="studio" data-i="nav_studio"></button>
-    </nav>
-    <div class="tools">
-      <div class="tabs" id="langs" role="group" aria-label="Language">
-        <button class="tab" type="button" data-lang="ru" aria-pressed="true">RU</button>
-        <button class="tab" type="button" data-lang="en" aria-pressed="false">EN</button>
-        <button class="tab" type="button" data-lang="hy" aria-pressed="false">HY</button>
-      </div>
-      <div class="tabs" id="modes" role="group" aria-label="Mode">
-        <button class="tab" type="button" data-mode="site" aria-pressed="true" data-i="m_site"></button>
-        <button class="tab" type="button" data-mode="tg" aria-pressed="false" data-i="m_tg"></button>
-      </div>
+    <div class="hdr-r">
       <button class="btn sm" id="cartBtn" type="button"></button>
+      <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="sr" id="burgerLbl"></span></button>
     </div>
   </header>
   <div id="tickHost"></div>
   <main id="main"></main>
   <footer class="note" style="padding-block:32px 0" data-i="foot"></footer>
 </div>
+<div class="menu-wrap" id="menuWrap" hidden><div class="menu-bg" data-act="menuclose"></div><nav class="menu" id="menu" aria-labelledby="burgerLbl" tabindex="-1"></nav></div>
 <div id="stickyHost"></div>
 <div id="toastHost" aria-live="polite"></div>

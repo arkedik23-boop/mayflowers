@@ -1,3 +1,4 @@
+let MENU_OPEN=false;
 const FIELDS=['f_sign','f_paper','f_ribbon','f_com','f_rec','f_phone','f_addr','f_date','f_win','f_exact','f_occ','f_text','f_tone','f_you','f_yphone'];
 function grab(){if(!$('#f_you'))return;FIELDS.forEach(k=>{const e=$('#'+k);if(e)S.draft[k]=e.value});
   ['f_anon','f_rem','f_pub'].forEach(k=>{const e=$('#'+k);if(e)S.draft[k]=e.checked});
@@ -75,9 +76,7 @@ function studioView(){
 function render(){
   const L=T[S.lang];document.documentElement.lang=S.lang;
   document.querySelectorAll('[data-i]').forEach(e=>{e.textContent=L[e.dataset.i]});
-  document.querySelectorAll('.top nav .tab').forEach(b=>b.setAttribute('aria-current',String(b.dataset.view===S.view||(S.view==='checkout'&&b.dataset.view==='shop')||(S.view==='done'&&b.dataset.view==='cabinet'))));
-  document.querySelectorAll('#langs .tab').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lang===S.lang)));
-  document.querySelectorAll('#modes .tab').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===S.mode)));
+  $('#burgerLbl').textContent=L.mn_open;$('#burger').setAttribute('aria-label',L.mn_open);if(MENU_OPEN)$('#menu').innerHTML=menuInner();
   document.body.classList.toggle('tg',S.mode==='tg');
   $('#cartBtn').textContent=L.cart+' · '+cartCount();
   if(S._tl!==S.lang){S._tl=S.lang;$('#tickHost').innerHTML=marquee()}
@@ -90,15 +89,19 @@ function chrome(){const L=T[S.lang];$('#cartBtn').textContent=L.cart+' · '+cart
   const n=cartCount();$('#stickyHost').innerHTML=(S.view==='shop'&&n&&!TG)?'<div class="sticky"><button class="btn ink" data-act="checkout">'+L.cart+' · '+n+' · '+usd(cartSum())+'</button></div>':'';tgSync();
 }
 function go(v){grab();S.view=v;render();window.scrollTo(0,0)}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data-view],[data-lang],[data-mode],#logo,#cartBtn');if(!b)return;
-  if(b.id==='logo')return go('shop');if(b.id==='cartBtn')return go(cartCount()?'checkout':'shop');
-  if(b.dataset.view)return go(b.dataset.view);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data-view],[data-lang],[data-mode],[data-nav],#logo,#cartBtn,#burger');if(!b)return;
+  if(b.id==='logo'){menuClose(true);return go('shop')}if(b.id==='cartBtn'){menuClose(true);return go(cartCount()?'checkout':'shop')}
+  if(b.dataset.view){menuClose(true);return go(b.dataset.view)}
   if(b.dataset.lang){grab();S.lang=b.dataset.lang;return render()}
-  if(b.dataset.mode){S.mode=b.dataset.mode;return render()}
+  if(b.id==='burger')return MENU_OPEN?menuClose():menuOpen();
+  if(b.dataset.nav){menuClose(true);return navTo(b.dataset.nav)}
+  if(b.dataset.mode){S.mode=b.dataset.mode;menuClose(true);return render()}
+  if(b.dataset.view&&MENU_OPEN)menuClose(true);
   const a=b.dataset.act,v=b.dataset.v;
   if(a==='add')add(+v);else if(a==='filter'){S.filter=v;render()}
   else if(a==='catalog'){const c=$('#catalog');if(c)c.scrollIntoView({behavior:'smooth'})}
-  else if(a==='mgr')toast(t('mgr'));
+  else if(a==='mgr'){menuClose(true);toast(t('mgr'))}
+  else if(a==='menuclose')menuClose();
   else if(a==='checkout'||a==='cabinet'||a==='studio'||a==='shop')go(a);
   else if(a==='inc'||a==='dec'){grab();const pr=/p$/.test(v),c=S.cart.find(x=>x.id===parseInt(v)&&!!x.promo===pr);if(c){c.q+=a==='inc'?1:-1;if(c.q<1)S.cart=S.cart.filter(x=>x!==c)}render()}
   else if(a==='ai'){grab();const n=(S.draft.f_rec||'').trim();S.draft.f_text=t(S.draft.f_tone||'ai_warm').replace('{n}',n||'').replace(/^[,\s]+/,'');render()}
@@ -215,7 +218,7 @@ function bonusBlock(list){const now=Date.now(),spent=list.filter(x=>now-x.ts<30*
   let li=0;LEVELS.forEach((l,i)=>{if(spent>=l.min)li=i});const cur=LEVELS[li],nx=LEVELS[li+1],names=t('lv'),perks=t('lv_perk');
   const bal=list.filter(x=>x.done).reduce((a,x)=>a+Math.round(x.usd*RATE*cur.cb/100),0);
   const pct=nx?Math.max(0,Math.min(100,Math.round((spent-cur.min)/(nx.min-cur.min)*100))):100;
-  return '<section class="blk bonus"><span class="label">'+t('bn_t')+'</span><div class="bn-top">'
+  return '<section class="blk bonus" id="bonus"><span class="label">'+t('bn_t')+'</span><div class="bn-top">'
   +'<div><span class="note">'+t('bn_bal')+'</span><b class="nums bn-bal">'+amdN(bal)+'</b></div>'
   +'<div><span class="note">'+t('bn_lvl')+'</span><b>'+esc(names[li])+' · '+cur.cb+'% '+t('bn_cb')+'</b></div>'
   +'<div><span class="note">'+t('bn_spent')+'</span><b class="nums">'+amdN(spent)+'</b></div></div>'
@@ -223,3 +226,23 @@ function bonusBlock(list){const now=Date.now(),spent=list.filter(x=>now-x.ts<30*
   +'<p class="note" style="margin-top:8px">'+(nx?t('bn_next').replace('{l}',names[li+1]).replace('{s}',amdN(nx.min-spent)):t('bn_max'))+'</p>'
   +'<ol class="bn-lv">'+LEVELS.map((l,i)=>'<li'+(i===li?' aria-current="true"':'')+'><b>'+esc(names[i])+'</b><span class="nums">'+(l.min?'≥ '+amdN(l.min):'0\u00a0֏')+'</span><span>'+l.cb+'% '+t('bn_cb')+'</span>'+(perks[i]?'<span class="note">'+esc(perks[i])+'</span>':'')+'</li>').join('')+'</ol>'
   +'<p class="note">'+t('bn_how')+'</p></section>'}
+
+/* Burger menu: every section of the shop in one place */
+function menuInner(){const L=T[S.lang];
+  const items=[['catalog','mn_cat'],promoOn()?['promo','mn_promo']:null,['ai','mn_ai'],['kind','mn_kind'],['cabinet','mn_cab'],['bonus','mn_bonus']].filter(Boolean);
+  return '<div class="menu-h"><span class="label">'+L.mn_open+'</span><button class="burger" type="button" data-act="menuclose" aria-label="'+L.mn_close+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>'
+  +'<ul class="menu-list">'+items.map(([k,l])=>'<li><button type="button" data-nav="'+k+'">'+L[l]+'</button></li>').join('')
+  +'<li><button type="button" data-act="mgr">'+L.mn_contact+'</button></li></ul>'
+  +'<div class="menu-sub"><span class="label">'+L.mn_lang+'</span><div class="tabs" role="group" aria-label="'+L.mn_lang+'">'+[['ru','RU'],['en','EN'],['hy','HY']].map(([c,n])=>'<button class="tab" type="button" data-lang="'+c+'" aria-pressed="'+(S.lang===c)+'">'+n+'</button>').join('')+'</div></div>'
+  +(TG?'':'<div class="menu-sub"><span class="label">'+L.mn_demo+'</span><div class="tabs"><button class="tab" type="button" data-view="studio" aria-pressed="'+(S.view==='studio')+'">'+L.nav_studio+'</button><button class="tab" type="button" data-mode="site" aria-pressed="'+(S.mode==='site')+'">'+L.m_site+'</button><button class="tab" type="button" data-mode="tg" aria-pressed="'+(S.mode==='tg')+'">'+L.m_tg+'</button></div></div>')}
+function menuOpen(){MENU_OPEN=true;const w=$('#menuWrap'),m=$('#menu');m.innerHTML=menuInner();w.hidden=false;document.body.classList.add('menu-on');
+  $('#burger').setAttribute('aria-expanded','true');requestAnimationFrame(()=>{w.classList.add('on');const f=m.querySelector('[data-nav]');if(f)f.focus()})}
+function menuClose(silent){if(!MENU_OPEN)return;MENU_OPEN=false;const w=$('#menuWrap');w.classList.remove('on');w.hidden=true;document.body.classList.remove('menu-on');
+  const b=$('#burger');b.setAttribute('aria-expanded','false');if(!silent)b.focus()}
+function navTo(k){const anchors={catalog:'catalog',promo:'promo',ai:'ai',kind:'kind'};
+  if(anchors[k]){if(S.view!=='shop')go('shop');const el=document.getElementById(anchors[k]);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});const f=el.querySelector('h2,h1');if(f){f.setAttribute('tabindex','-1');f.focus({preventScroll:true})}}return}
+  if(k==='cabinet')return go('cabinet');
+  if(k==='bonus'){go('cabinet');setTimeout(()=>{const el=document.querySelector('.bonus');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}}
+document.addEventListener('keydown',e=>{if(!MENU_OPEN)return;if(e.key==='Escape'){e.preventDefault();menuClose()}
+  else if(e.key==='Tab'){const f=[...$('#menu').querySelectorAll('button')];if(!f.length)return;const a=f[0],z=f[f.length-1];
+    if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}});

@@ -28,7 +28,7 @@ const cartCount=()=>S.cart.reduce((a,c)=>a+c.q,0);
 function add(id,promo){promo=!!promo;const c=S.cart.find(x=>x.id===id&&!!x.promo===promo);c?c.q++:S.cart.push(promo?{id,q:1,promo:true}:{id,q:1});chrome();toast(t('add')+': '+pn(PRODUCTS.find(p=>p.id===id)))}
 function promoLeft(){const ms=Math.max(0,promoEnd()-Date.now()),h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return t('pr_left').replace('{t}',(h?h+'\u00a0'+t('pr_h')+' ':'')+m+'\u00a0'+t('pr_m'))}
 function promoBlock(){if(!promoOn())return '';const p=PRODUCTS.find(x=>x.id===PROMO.id),pr=usd(PROMO.usd);
-  return '<section class="promo" aria-labelledby="promoT"><div class="tintbox">'+art(p)+'<span class="promo-tag">\u2212'+Math.round((1-PROMO.usd/p.usd)*100)+'%</span></div><div class="promo-body"><p class="label">'+t('pr_k')+' · <span id="promoLeft" class="nums">'+promoLeft()+'</span></p><h2 id="promoT">'+esc(pn(p))+'</h2><p class="comp">'+esc(pk(p))+'</p>'
+  return '<section class="promo" id="promo" aria-labelledby="promoT"><div class="tintbox">'+art(p)+'<span class="promo-tag">\u2212'+Math.round((1-PROMO.usd/p.usd)*100)+'%</span></div><div class="promo-body"><p class="label">'+t('pr_k')+' · <span id="promoLeft" class="nums">'+promoLeft()+'</span></p><h2 id="promoT">'+esc(pn(p))+'</h2><p class="comp">'+esc(pk(p))+'</p>'
   +'<p class="promo-price"><s class="nums">'+usd(p.usd)+' · '+amd(p.usd)+'</s><b class="nums">'+pr+'</b><small class="nums">'+amd(PROMO.usd)+'</small></p>'
   +'<button class="btn primary" data-act="promo">'+t('pr_btn').replace('{p}',pr)+'</button><p class="note">'+t('pr_note')+'</p></div></section>'}
 setInterval(()=>{const el=document.getElementById('promoLeft');if(!el)return;if(!promoOn()){if(S.view==='shop')render();return}el.textContent=promoLeft()},30000);
@@ -49,7 +49,7 @@ function shopView(){
   +promoBlock()
   +'<section class="ai" id="ai">'+aiInner()+'</section>'
   +'<ol class="steps"><li><span class="label">01</span><b>'+t('s1t')+'</b>'+t('s1d')+'</li><li><span class="label">02</span><b>'+t('s2t')+'</b>'+t('s2d')+'</li><li><span class="label">03</span><b>'+t('s3t')+'</b>'+t('s3d')+'</li></ol>'
-  +'<section class="kind"><div><p class="label">'+t('kind_k')+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
+  +'<section class="kind" id="kind"><div><p class="label">'+t('kind_k')+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
   +'<div class="sec" id="catalog"><h2>'+t('cat_t')+'</h2><div class="tabs" role="group">'
   +['all'].concat(OCC).map(o=>'<button class="tab" data-act="filter" data-v="'+o+'" aria-pressed="'+(S.filter===o)+'">'+(o==='all'?t('f_all'):t('o_'+o))+'</button>').join('')+'</div></div>'
   +'<div class="grid">'+list.map(p=>'<article class="item"><div class="tintbox">'+art(p)+'</div><h3>'+esc(pn(p))+'</h3><p class="comp">'+esc(pk(p))+'</p>'
