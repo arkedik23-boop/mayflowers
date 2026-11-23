@@ -48,6 +48,11 @@ TZ_OFFSET = float(os.environ.get("TZ_OFFSET", "4"))  # часовой пояс �
 REMIND_HOUR = int(os.environ.get("REMIND_HOUR", "11"))  # во сколько слать напоминания
 INIT_MAX_AGE = 86400  # подпись мини-апки действительна сутки
 MANAGER_CONTACT = os.environ.get("MANAGER_CONTACT", "")  # например @mayflowers_manager или +374 ...
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")  # ключ Claude API: включает умного помощника
+AI_MODEL = os.environ.get("AI_MODEL", "claude-haiku-5-5")
+AI_USER_DAILY = int(os.environ.get("AI_USER_DAILY", "40"))     # ответов ИИ одному клиенту в сутки
+AI_DAILY_CAP = int(os.environ.get("AI_DAILY_CAP", "3000"))     # всего ответов ИИ в сутки, защита баланса
+HUMAN_HOURS = float(os.environ.get("HUMAN_HOURS", "6"))        # сколько часов диалог ведёт человек после «Позвать человека»
 MEDIA_DIR = os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "cards")  # кеш записей для открыток
 CARD_REPLY_MAX = 6_000_000  # байт на голосовой ответ из браузера
 CATALOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "catalog.json")
@@ -195,6 +200,9 @@ def init_db():
             token TEXT PRIMARY KEY, order_id TEXT UNIQUE, rec_code TEXT UNIQUE, client_chat INTEGER,
             kind TEXT, file_id TEXT, created REAL, recorded REAL, opened REAL, replies INTEGER DEFAULT 0);
         CREATE TABLE IF NOT EXISTS waiting_card(chat_id INTEGER PRIMARY KEY, token TEXT);
+        CREATE TABLE IF NOT EXISTS ai_msgs(id INTEGER PRIMARY KEY AUTOINCREMENT, chat INTEGER, role TEXT, content TEXT, ts REAL);
+        CREATE TABLE IF NOT EXISTS ai_usage(day TEXT, chat INTEGER, n INTEGER DEFAULT 0, PRIMARY KEY(day, chat));
+        CREATE TABLE IF NOT EXISTS human_mode(chat INTEGER PRIMARY KEY, until REAL);
         CREATE TABLE IF NOT EXISTS vip_requests(
             id INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT, client_chat INTEGER, created REAL);
         CREATE TABLE IF NOT EXISTS reminders(
@@ -830,11 +838,19 @@ def client_action(chat, m, action):
     elif action == "kind":
         send(chat, esc(L["kind"]), [[(CLIENT[lg]["open"], "webapp:" + shop_url())]] if WEBAPP_URL else None)
     elif action == "contact":
+        set_human(chat, True)
         txt = L["contact"] + ("\n" + L["contact_direct"].format(c=MANAGER_CONTACT) if MANAGER_CONTACT else "")
         send(chat, esc(txt))
 
 
 def client_free_text(chat, m, text):
+    if ANTHROPIC_API_KEY and not human_active(chat):
+        if ai_chat(chat, m, text):
+            return
+    forward_to_human(chat, m, text)
+
+
+def forward_to_human(chat, m, text):
     frm = m.get("from") or {}
     name = " ".join(x for x in [frm.get("first_name"), frm.get("last_name")] if x) or "клиент"
     user = f" @{esc(frm['username'])}" if frm.get("username") else ""
@@ -1219,6 +1235,9 @@ def handle_callback(cb):
     if data.startswith("cat:"):
         catalog_callback(cb, answer)
         return
+    if data.startswith("ai:") and not s:
+        ai_callback(cb, data[3:], answer)
+        return
     if data.startswith("adm:"):
         if is_admin((cb.get("from") or {}).get("id")):
             admin_callback(cb, answer)
@@ -1384,6 +1403,9 @@ class Intake(BaseHTTPRequestHandler):
         if p.startswith("/api/card/") and p.endswith("/reply"):
             self.card_reply(p[len("/api/card/"):-len("/reply")])
             return
+        if p == "/api/ai":
+            self.ai_request()
+            return
         if p == "/api/vip":
             self.vip_request()
             return
@@ -1437,6 +1459,40 @@ class Intake(BaseHTTPRequestHandler):
         if c and not client_chat:
             resp["record_link"] = f"https://t.me/{BOT_USERNAME}?start=rec_{c['rec_code']}"
         self.reply(200, resp)
+
+    # ---- умный помощник для сайта и мини-апки: подбор букетов (ключ Claude живёт только здесь)
+    def ai_request(self):
+        if not ANTHROPIC_API_KEY:
+            self.reply(503, {"ok": False, "error": "ИИ выключен"})
+            return
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0 or length > 4_000:
+            self.reply(413, {"ok": False})
+            return
+        try:
+            v = json.loads(self.rfile.read(length).decode())
+            text = str(v.get("q") or "").strip()[:600]
+            lg = str(v.get("lang") or "ru")[:2]
+        except Exception:
+            self.reply(400, {"ok": False})
+            return
+        init = self.headers.get("X-Telegram-Init-Data")
+        if init:
+            if not verify_init_data(init):
+                self.reply(401, {"ok": False})
+                return
+        elif not INTAKE_KEY or not secrets.compare_digest(str(self.headers.get("X-Intake-Key") or ""), INTAKE_KEY):
+            self.reply(401, {"ok": False})
+            return
+        ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
+        if not text or not hits_allowed("ai:" + ip, 15, 600) or not ai_budget(0):
+            self.reply(429, {"ok": False, "error": "слишком много запросов"})
+            return
+        r = ai_pick(text, lg)
+        if r is None:
+            self.reply(502, {"ok": False})
+            return
+        self.reply(200, dict(ok=True, **r))
 
     # ---- «Маис лично»: заявка на премиум-вручение, только админам
     def vip_request(self):
@@ -1795,15 +1851,19 @@ def card_media_file(c):
     return path, ctype
 
 
-def reply_allowed(ip):
+def hits_allowed(key, limit, window):
     now = time.time()
-    hits = [t for t in REPLY_HITS.get(ip, []) if now - t < 600]
-    if len(hits) >= 5:
-        REPLY_HITS[ip] = hits
+    hits = [t for t in REPLY_HITS.get(key, []) if now - t < window]
+    if len(hits) >= limit:
+        REPLY_HITS[key] = hits
         return False
     hits.append(now)
-    REPLY_HITS[ip] = hits
+    REPLY_HITS[key] = hits
     return True
+
+
+def reply_allowed(ip):
+    return hits_allowed(ip, 5, 600)
 
 
 def deliver_card_reply(c, data, ctype):
@@ -1823,6 +1883,221 @@ def deliver_card_reply(c, data, ctype):
     if c["client_chat"]:
         notify_admins(f"💌 {esc(c['order_id'])}: получатель ответил голосом на открытку")
     return ok
+
+
+# ---------------------------------------------------------------- умный помощник (Claude API)
+
+AI_TX = {
+    "ru": {"human": "👩 Позвать человека", "bot": "🤖 Вернуть помощника", "order": "🛒 Заказать",
+           "handoff": "Передал вопрос менеджеру, он ответит здесь же 🌸",
+           "back": "Снова на связи помощник 🤖 Пишите, что ищете: кому, повод, бюджет.",
+           "busy": "Помощник сейчас перегружен, передал ваш вопрос менеджеру 🌸",
+           "card": "💌 Текст для открытки"},
+    "en": {"human": "👩 Talk to a person", "bot": "🤖 Back to the assistant", "order": "🛒 Order",
+           "handoff": "I passed your question to a manager, they will reply right here 🌸",
+           "back": "The assistant is back 🤖 Tell me who it is for, the occasion and your budget.",
+           "busy": "The assistant is busy right now, I passed your question to a manager 🌸",
+           "card": "💌 Card text"},
+    "hy": {"human": "👩 Կանչել մարդու", "bot": "🤖 Վերադարձնել օգնականին", "order": "🛒 Պատվիրել",
+           "handoff": "Հարցը փոխանցեցի մենեջերին, նա կպատասխանի այստեղ 🌸",
+           "back": "Օգնականը կրկին կապի մեջ է 🤖 Գրեք՝ ում համար, առիթը և բյուջեն:",
+           "busy": "Օգնականն այժմ ծանրաբեռնված է, հարցը փոխանցեցի մենեջերին 🌸",
+           "card": "💌 Բացիկի տեքստ"},
+}
+LANG_NAME = {"ru": "русском", "en": "английском", "hy": "армянском"}
+
+
+def ai_catalog():
+    rate = CATALOG.get("rate_amd", 390)
+    rows = []
+    for i in CATALOG.get("items", []):
+        rows.append({"id": i["id"], "name": i["n"].get("ru"), "name_en": i["n"].get("en"), "name_hy": i["n"].get("hy"),
+                     "composition": i["k"].get("ru"), "usd": i["usd"],
+                     "amd": round(i["usd"] * rate / 100) * 100, "occasions": i.get("occ", [])})
+    return json.dumps(rows, ensure_ascii=False)
+
+
+def ai_system():
+    return (
+        "Ты — консультант цветочного сервиса MayFlowers by Mais в Ереване. Это доставка цветов и не только "
+        "от блогера Маиса Варданяна, который дарит цветы незнакомым людям. Слоган: «Дари добро. Дари цветы.»\n"
+        "Правила:\n"
+        "- Советуй только букеты из каталога ниже, по их id. Цены бери только из каталога, ничего не выдумывай.\n"
+        "- Никогда не упоминай студии, партнёров, подрядчиков или флористов со стороны. Для клиента всё делает MayFlowers.\n"
+        "- Доставка по Еревану $3: соберём за час или привезём к точному времени. Фото готового букета приходит до доставки.\n"
+        "- Дополнительно есть: «Букет в добрые руки» (букет дарим случайному прохожему от имени клиента и присылаем видео), "
+        "аудио или видео поздравление по QR-коду на открытке, «Маис лично» (Маис сам привозит букет, от $1000, по заявке на сайте), "
+        "особые большие букеты от $500 через менеджера.\n"
+        "- Отвечай тепло и коротко, 1–3 предложения, без списков и markdown. Пиши на языке клиента. "
+        "Говори только о букетах, которые предлагаешь; неподходящие не упоминай.\n"
+        "- Не обсуждай темы, не связанные с цветами, подарками и заказом: вежливо верни разговор к цветам.\n"
+        "- Поставь human=true, если клиент просит человека или менеджера, жалуется, спрашивает про уже оформленный заказ, "
+        "оплату, возврат, корпоративный или нестандартный заказ, или ты не можешь помочь.\n"
+        "Каталог (JSON):\n" + ai_catalog()
+    )
+
+
+def ai_call(system, messages, max_tokens=1000):
+    # thinking выключен: для консультаций он не нужен, а ответ без него быстрее и не обрезается по max_tokens
+    body = {"model": AI_MODEL, "max_tokens": max_tokens, "thinking": {"type": "disabled"},
+            "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
+            "messages": messages}
+    req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
+                                 headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01",
+                                          "content-type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=40) as r:
+            d = json.loads(r.read().decode())
+        if d.get("stop_reason") == "max_tokens":
+            log.warning("claude api: ответ обрезан по max_tokens")
+        return "".join(c.get("text", "") for c in d.get("content", []) if c.get("type") == "text")
+    except urllib.error.HTTPError as e:
+        try:
+            log.warning("claude api %s: %s", e.code, e.read().decode()[:300])
+        except Exception:
+            log.warning("claude api %s", e.code)
+    except Exception as e:
+        log.warning("claude api failed: %s", e)
+    return None
+
+
+def ai_json(text):
+    if not text:
+        return None
+    a, b = text.find("{"), text.rfind("}")
+    if a < 0 or b <= a:
+        return None
+    try:
+        return json.loads(text[a:b + 1])
+    except ValueError:
+        return None
+
+
+def ai_budget(chat):
+    """True и +1 к счётчику, если не превышены лимиты на клиента и на сутки."""
+    day = local_now().strftime("%Y-%m-%d")
+    total = q("SELECT COALESCE(SUM(n),0) AS n FROM ai_usage WHERE day=?", (day,), one=True)["n"]
+    mine = q("SELECT n FROM ai_usage WHERE day=? AND chat=?", (day, chat), one=True)
+    if total >= AI_DAILY_CAP or (chat and mine and mine["n"] >= AI_USER_DAILY):
+        return False
+    q("INSERT INTO ai_usage(day,chat,n) VALUES(?,?,1) ON CONFLICT(day,chat) DO UPDATE SET n=n+1", (day, chat))
+    return True
+
+
+def valid_ids():
+    return {i["id"] for i in CATALOG.get("items", [])}
+
+
+def ai_pick(text, lg):
+    """Один запрос с сайта: до 3 букетов, короткий ответ и текст открытки."""
+    lg = lg if lg in LANG_NAME else "ru"
+    prompt = (f"Покупатель на сайте написал:\n\"\"\"{text}\"\"\"\n\nПодбери до 3 букетов из каталога по поводу, получателю, "
+              f"вкусам и бюджету; бюджет не превышай. Пиши на {LANG_NAME[lg]} языке.\n"
+              'Ответь только JSON: {"reply":"1–2 предложения","picks":[{"id":число,"why":"до 15 слов"}],'
+              '"card":"текст открытки 1–2 предложения или пустая строка"}')
+    d = ai_json(ai_call(ai_system(), [{"role": "user", "content": prompt}]))
+    if d is None:
+        return None
+    ok = valid_ids()
+    picks = [{"id": int(x.get("id")), "why": str(x.get("why") or "")[:200]}
+             for x in (d.get("picks") or []) if isinstance(x, dict) and str(x.get("id", "")).isdigit() and int(x["id"]) in ok][:3]
+    return {"reply": str(d.get("reply") or "")[:600], "picks": picks, "card": str(d.get("card") or "")[:300]}
+
+
+def human_active(chat):
+    r = q("SELECT until FROM human_mode WHERE chat=?", (chat,), one=True)
+    return bool(r and r["until"] > time.time())
+
+
+def set_human(chat, on):
+    if on:
+        q("INSERT OR REPLACE INTO human_mode(chat,until) VALUES(?,?)", (chat, time.time() + HUMAN_HOURS * 3600))
+    else:
+        q("DELETE FROM human_mode WHERE chat=?", (chat,))
+
+
+def ai_chat(chat, m, text):
+    """Диалог с клиентом в боте. False — не получилось, тогда сообщение уйдёт человеку."""
+    lg = user_lang(m.get("from"))
+    T = AI_TX[lg]
+    if not ai_budget(chat):
+        return False
+    tg("sendChatAction", chat_id=chat, action="typing")
+    q("INSERT INTO ai_msgs(chat,role,content,ts) VALUES(?,?,?,?)", (chat, "user", text[:2000], time.time()))
+    hist = list(reversed(q("SELECT role, content FROM ai_msgs WHERE chat=? AND ts>? ORDER BY id DESC LIMIT 12",
+                           (chat, time.time() - 86400 * 2))))
+    msgs = []
+    for h in hist:
+        if msgs and msgs[-1]["role"] == h["role"]:
+            msgs[-1]["content"] += "\n" + h["content"]
+        else:
+            msgs.append({"role": h["role"], "content": h["content"]})
+    while msgs and msgs[0]["role"] != "user":
+        msgs.pop(0)
+    msgs[-1]["content"] += ("\n\n[Ответь только JSON: {\"reply\":\"ответ клиенту на " + LANG_NAME[lg] + " языке\","
+                            "\"picks\":[id букетов, до 3, только если уместно показать букеты],"
+                            "\"card\":\"текст открытки, если клиент просил, иначе пусто\",\"human\":true|false}]")
+    d = ai_json(ai_call(ai_system(), msgs))
+    if d is None:
+        return False
+    reply = str(d.get("reply") or "").strip()[:1500]
+    ok = valid_ids()
+    picks = [int(x) for x in (d.get("picks") or []) if str(x).isdigit() and int(x) in ok][:3]
+    q("INSERT INTO ai_msgs(chat,role,content,ts) VALUES(?,?,?,?)",
+      (chat, "assistant", json.dumps({"reply": reply, "picks": picks}, ensure_ascii=False), time.time()))
+    if d.get("human"):
+        send(chat, esc(reply) if reply else esc(T["handoff"]))
+        handoff(chat, m, text)
+        return True
+    items = {i["id"]: i for i in CATALOG.get("items", [])}
+    rate = CATALOG.get("rate_amd", 390)
+    for pid in picks:
+        it = items[pid]
+        amd = f"{round(it['usd'] * rate / 100) * 100:,}".replace(",", "\u00a0")
+        cap = f"<b>{esc(it['n'].get(lg) or it['n']['ru'])}</b>\n{esc(it['k'].get(lg) or it['k']['ru'])}\n\n<b>${it['usd']}</b> · {amd} ֏"
+        rows = [[(T["order"], "webapp:" + shop_url(add=pid))]] if WEBAPP_URL else None
+        if WEBAPP_URL:
+            tg("sendPhoto", chat_id=chat, photo=urllib.parse.urljoin(WEBAPP_URL, it["img"]), caption=cap,
+               parse_mode="HTML", reply_markup=kb(rows))
+        else:
+            send(chat, cap)
+    card_txt = str(d.get("card") or "").strip()[:400]
+    out = esc(reply or "🌸") + (f"\n\n{esc(T['card'])}: «{esc(card_txt)}»" if card_txt else "")
+    send(chat, out, [[(T["human"], "ai:human")]])
+    return True
+
+
+def handoff(chat, m, text):
+    """Передать диалог человеку: ИИ молчит HUMAN_HOURS часов, сообщения идут админам."""
+    lg = user_lang(m.get("from") if m else {})
+    set_human(chat, True)
+    frm = (m or {}).get("from") or {}
+    name = " ".join(x for x in [frm.get("first_name"), frm.get("last_name")] if x) or "клиент"
+    user = f" @{esc(frm['username'])}" if frm.get("username") else ""
+    last = q("SELECT role, content FROM ai_msgs WHERE chat=? ORDER BY id DESC LIMIT 6", (chat,))
+    lines = []
+    for r in reversed(last):
+        c = r["content"]
+        if r["role"] == "assistant":
+            try:
+                c = json.loads(c).get("reply", c)
+            except ValueError:
+                pass
+        lines.append(("👤 " if r["role"] == "user" else "🤖 ") + esc(str(c)[:400]))
+    notify_admins(f"🙋 {esc(name)}{user} просит человека\n\n" + ("\n".join(lines) or esc(text[:1000])),
+                  buttons=[[("✍️ Ответить", f"adm:rp:{chat}")]])
+    send(chat, esc(AI_TX[lg]["handoff"]), [[(AI_TX[lg]["bot"], "ai:bot")]])
+
+
+def ai_callback(cb, act, answer):
+    chat = cb["message"]["chat"]["id"]
+    lg = user_lang(cb.get("from"))
+    if act == "human":
+        handoff(chat, {"from": cb.get("from") or {}}, "")
+    elif act == "bot":
+        set_human(chat, False)
+        send(chat, esc(AI_TX[lg]["back"]))
+    answer()
 
 
 def cabinet(uid):

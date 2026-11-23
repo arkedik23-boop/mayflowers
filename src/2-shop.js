@@ -94,6 +94,11 @@ async function aiAsk(){const q=(S.ai.q||'').trim();if(!q){toast(t('ai_empty'));r
       S.ai=Object.assign(S.ai,{status:'done',reply:String((r&&r.reply)||''),picks,card:String((r&&r.card)||''),local:false});aiPaint();return}
     catch(e){const code=e&&e.code;if(code==='cancelled'){S.ai.status='idle';aiPaint();return}
       if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(code))SAMPLE=null}}
+  if(ORDER_API.url){AI_CTL=new AbortController();
+    try{const r=await fetch(ORDER_API.url.replace(/\/$/,'')+'/api/ai',{method:'POST',signal:AI_CTL.signal,headers:TG?{'Content-Type':'application/json','X-Telegram-Init-Data':TG.initData}:{'Content-Type':'application/json','X-Intake-Key':ORDER_API.key},body:JSON.stringify({q:q.slice(0,600),lang:S.lang})});
+      if(r.ok){const d=await r.json(),ok=new Set(PRODUCTS.filter(p=>!p.stem).map(p=>p.id));
+        S.ai=Object.assign(S.ai,{status:'done',reply:String(d.reply||''),picks:(d.picks||[]).filter(x=>ok.has(+x.id)).map(x=>({id:+x.id,why:String(x.why||'')})).slice(0,3),card:String(d.card||''),local:false});aiPaint();return}}
+    catch(e){if(e&&e.name==='AbortError'){S.ai.status='idle';aiPaint();return}}}
   S.ai=Object.assign(S.ai,{status:'done'},aiLocal(q));aiPaint()}
 (async()=>{try{if(window.claude&&typeof claude.use==='function')SAMPLE=await claude.use('sample')}catch(e){SAMPLE=null}})();
 
