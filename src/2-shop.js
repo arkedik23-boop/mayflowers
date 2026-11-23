@@ -1,15 +1,18 @@
 const REEL=document.createElement('video');
 (()=>{const rm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
   REEL.src='vid/mais.mp4';REEL.poster='vid/mais.jpg';REEL.muted=true;REEL.loop=true;REEL.playsInline=true;REEL.setAttribute('playsinline','');REEL.preload='metadata';REEL.autoplay=!rm;if(rm)REEL.controls=true})();
-const S={vip:{open:false,status:'idle'},lang:'ru',mode:'site',view:'shop',cart:[],filter:'all',orders:[],last:null,draft:{},kind:false,ai:{q:'',status:'idle',reply:'',picks:[],card:'',local:false},pick:101,pq:5,rot:0,crTarget:null};
+const S={cur:null,fOpen:false,f:{min:0,max:null,fl:[],col:[],fmt:[],mais:false,sort:'pop'},vip:{open:false,status:'idle'},lang:'ru',mode:'site',view:'shop',cart:[],filter:'all',orders:[],last:null,draft:{},kind:false,ai:{q:'',status:'idle',reply:'',picks:[],card:'',local:false},pick:101,pq:5,rot:0,crTarget:null};
 const LOC={ru:'ru-RU',en:'en-GB',hy:'hy-AM'};
 const $=s=>document.querySelector(s);
 const t=k=>T[S.lang][k];
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pn=p=>p.n[S.lang], pk=p=>p.k[S.lang];
 const amd=u=>(Math.round(u*RATE/100)*100).toLocaleString(LOC[S.lang])+'\u00a0֏';
-const usd=u=>'$'+u;
-function load(){try{S.orders=JSON.parse(localStorage.getItem('may_orders')||'[]')}catch(e){S.orders=[]}}
+/* валюта показа: ru → ₽, hy → ֏, en → $, пока клиент не выбрал сам */
+const curNow=()=>S.cur||CUR_BY_LANG[S.lang]||'usd';
+const usd=u=>{const c=curNow();if(c==='rub')return (Math.round(u*RUB_RATE/10)*10).toLocaleString(LOC[S.lang])+'\u00a0₽';if(c==='amd')return (Math.round(u*RATE/100)*100).toLocaleString(LOC[S.lang])+'\u00a0֏';return '$'+Number(u).toLocaleString('en-US')};
+const usdRaw=u=>'$'+u;
+function load(){try{S.orders=JSON.parse(localStorage.getItem('may_orders')||'[]')}catch(e){S.orders=[]}try{const c=localStorage.getItem('may_cur');if(['rub','amd','usd'].includes(c))S.cur=c}catch(e){}}
 function save(){try{localStorage.setItem('may_orders',JSON.stringify(S.orders))}catch(e){}}
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function fdate(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString(LOC[S.lang],{day:'numeric',month:'long',year:'numeric'})}
@@ -29,7 +32,7 @@ function add(id,promo){promo=!!promo;const c=S.cart.find(x=>x.id===id&&!!x.promo
 function promoLeft(){const ms=Math.max(0,promoEnd()-Date.now()),h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return t('pr_left').replace('{t}',(h?h+'\u00a0'+t('pr_h')+' ':'')+m+'\u00a0'+t('pr_m'))}
 function promoBlock(){if(!promoOn())return '';const p=PRODUCTS.find(x=>x.id===PROMO.id),pr=usd(PROMO.usd);
   return '<section class="promo" id="promo" aria-labelledby="promoT"><div class="tintbox">'+art(p)+'<span class="promo-tag">\u2212'+Math.round((1-PROMO.usd/p.usd)*100)+'%</span></div><div class="promo-body"><p class="label">'+t('pr_k')+' · <span id="promoLeft" class="nums">'+promoLeft()+'</span></p><h2 id="promoT">'+esc(pn(p))+'</h2><p class="comp">'+esc(pk(p))+'</p>'
-  +'<p class="promo-price"><s class="nums">'+usd(p.usd)+' · '+amd(p.usd)+'</s><b class="nums">'+pr+'</b><small class="nums">'+amd(PROMO.usd)+'</small></p>'
+  +'<p class="promo-price"><s class="nums">'+usd(p.usd)+'</s><b class="nums">'+pr+'</b></p>'
   +'<button class="btn primary" data-act="promo">'+t('pr_btn').replace('{p}',pr)+'</button><p class="note">'+t('pr_note')+'</p></div></section>'}
 setInterval(()=>{const el=document.getElementById('promoLeft');if(!el)return;if(!promoOn()){if(S.view==='shop')render();return}el.textContent=promoLeft()},30000);
 function marquee(){const s=('<span>'+esc(t('rib'))+'</span>').repeat(3);return '<div class="marq" role="marquee" aria-label="'+esc(t('rib'))+'"><div class="marq-track" aria-hidden="true">'+s+s+'</div></div>'}
@@ -43,7 +46,6 @@ function pickPanel(){const p=PRODUCTS.find(x=>x.id===S.pick);if(!p)return '<p cl
   +'<div class="qty"><button type="button" data-act="pq" data-v="-1" aria-label="'+t('less')+'">−</button><span class="nums">'+S.pq+'</span><button type="button" data-act="pq" data-v="1" aria-label="'+t('more')+'">+</button></div>'
   +'<button class="btn primary" data-act="addstem">'+t('fr_add')+' · '+usd(p.usd*S.pq)+'</button>'}
 function shopView(){
-  const list=PRODUCTS.filter(p=>!p.stem&&(S.filter==='all'||p.occ.includes(S.filter)));
   return '<section class="hero"><div><p class="label">'+t('hero_k')+'</p><h1><span class="h-serif">'+t('hero_t1')+'</span> <span class="h-sans">'+t('hero_t2')+'</span></h1><p class="lead">'+t('hero_s')+'</p><button class="btn primary" data-act="catalog">'+t('hero_cta')+'</button></div>'
   +'<figure class="gift"><div class="reel" id="reelSlot"><button type="button" class="snd" data-act="snd" aria-pressed="false">'+t('snd_on')+'</button></div><figcaption class="label">'+t('hero_vid')+'</figcaption></figure></section>'
   +promoBlock()
@@ -51,10 +53,7 @@ function shopView(){
   +'<ol class="steps"><li><span class="label">01</span><b>'+t('s1t')+'</b>'+t('s1d')+'</li><li><span class="label">02</span><b>'+t('s2t')+'</b>'+t('s2d')+'</li><li><span class="label">03</span><b>'+t('s3t')+'</b>'+t('s3d')+'</li></ol>'
   +'<section class="kind" id="kind"><div><p class="label">'+t('kind_k')+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
   +vipBlock()
-  +'<div class="sec" id="catalog"><h2>'+t('cat_t')+'</h2><div class="tabs" role="group">'
-  +['all'].concat(OCC).map(o=>'<button class="tab" data-act="filter" data-v="'+o+'" aria-pressed="'+(S.filter===o)+'">'+(o==='all'?t('f_all'):t('o_'+o))+'</button>').join('')+'</div></div>'
-  +'<div class="grid">'+list.map(p=>'<article class="item"><div class="tintbox">'+art(p)+'</div><h3>'+esc(pn(p))+'</h3><p class="comp">'+esc(pk(p))+'</p>'
-  +'<div class="buy"><span class="price">'+usd(p.usd)+'<small>'+amd(p.usd)+'</small></span><button class="btn sm" data-act="add" data-v="'+p.id+'">'+t('add')+'</button></div></article>').join('')+'</div>'
+  +catalogBlock()
   +'<div class="custom"><div><h3>'+t('cu_t')+'</h3><p>'+t('cu_d')+'</p></div><button class="btn" data-act="mgr">'+t('cu_cta')+'</button></div>'}
 
 /* smart assistant: asks Claude through the page's sample capability, falls back to keyword matching */
@@ -65,7 +64,7 @@ function aiInner(){const a=S.ai,busy=a.status==='loading';
   else if(a.status==='done'){
     const ps=a.picks.map(x=>({p:PRODUCTS.find(p=>p.id===x.id),why:x.why})).filter(x=>x.p);
     res='<div class="ai-res" aria-live="polite">'+(a.reply?'<p class="ai-reply">'+esc(a.reply)+'</p>':'')
-    +(ps.length?'<div class="ai-picks">'+ps.map(({p,why})=>'<article class="item"><div class="tintbox">'+art(p)+'</div><h3>'+esc(pn(p))+'</h3><p class="comp">'+esc(why||pk(p))+'</p><div class="buy"><span class="price">'+usd(p.usd)+'<small>'+amd(p.usd)+'</small></span><button class="btn sm" data-act="add" data-v="'+p.id+'">'+t('add')+'</button></div></article>').join('')+'</div>':'<p class="muted">'+t('ai_none')+'</p>')
+    +(ps.length?'<div class="ai-picks">'+ps.map(({p,why})=>'<article class="item"><div class="tintbox">'+art(p)+'</div><h3>'+esc(pn(p))+'</h3><p class="comp">'+esc(why||pk(p))+'</p><div class="buy"><span class="price">'+usd(p.usd)+'</span><button class="btn sm" data-act="add" data-v="'+p.id+'">'+t('add')+'</button></div></article>').join('')+'</div>':'<p class="muted">'+t('ai_none')+'</p>')
     +(a.card?'<div class="ai-card"><span class="label">'+t('ai_card')+'</span><p>«'+esc(a.card)+'»</p><button class="btn sm" data-act="aicard">'+t('ai_use')+'</button></div>':'')
     +(a.local?'<p class="note">'+t('ai_local')+'</p>':'')+'</div>'}
   else if(a.status==='error')res='<p class="err">'+esc(a.err||'')+'</p>';
@@ -116,6 +115,59 @@ function vipBlock(){const v=S.vip,li=t('vip_li');
   else act='<button class="btn primary" type="button" data-act="vip">'+t('vip_btn')+'</button>';
   return '<section class="vip" id="vip" aria-labelledby="vipT"><div class="vip-in"><div class="vip-body"><p class="label">'+t('vip_k')+'</p>'
   +'<h2 id="vipT"><span class="h-serif">'+t('vip_t1')+'</span> '+t('vip_t2')+'</h2><p class="vip-d">'+t('vip_d')+'</p>'
-  +'<p class="vip-price"><span>'+t('vip_from')+'</span> <b class="nums">$'+VIP.from.toLocaleString('en-US')+'</b></p>'
+  +'<p class="vip-price"><span>'+t('vip_from')+'</span> <b class="nums">'+usd(VIP.from)+'</b></p>'
   +'<ul class="vip-li">'+li.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>'+act+'<p class="note">'+t('vip_note')+'</p></div>'
   +'<figure class="vip-media">'+media+'</figure></div></section>'}
+
+/* ---------- каталог: поводы плитками, фильтры, сортировка, валюта ---------- */
+const OCC_TILES=[['all',5],['bd',3],['love',10],['mom',20],['thanks',8],['sorry',7],['premium',12]];
+const PMAX=()=>Math.max(...PRODUCTS.filter(p=>!p.stem).map(p=>p.usd));
+function itemCard(p){return '<article class="item"><div class="tintbox">'+art(p)+(p.mais?'<span class="mais-tag">'+t('f_mais')+'</span>':'')+'</div><h3>'+esc(pn(p))+'</h3><p class="comp">'+esc(pk(p))+'</p>'
+  +'<div class="buy"><span class="price nums">'+usd(p.usd)+'</span><button class="btn sm" data-act="add" data-v="'+p.id+'">'+t('add')+'</button></div></article>'}
+function fList(){const f=S.f,mx=f.max==null?Infinity:f.max;
+  let l=PRODUCTS.filter(p=>!p.stem&&(S.filter==='all'||(S.filter==='premium'?p.usd>=150:p.occ.includes(S.filter)))&&p.usd>=f.min&&p.usd<=mx
+    &&(!f.fl.length||f.fl.some(x=>p.fl.includes(x)))&&(!f.col.length||f.col.some(x=>p.col.includes(x)))&&(!f.fmt.length||f.fmt.includes(p.fmt))&&(!f.mais||p.mais));
+  if(f.sort==='cheap')l.sort((a,b)=>a.usd-b.usd);else if(f.sort==='exp')l.sort((a,b)=>b.usd-a.usd);else l.sort((a,b)=>(b.mais-a.mais)||(a.id-b.id));
+  return l}
+function fCount(){const f=S.f;return f.fl.length+f.col.length+f.fmt.length+(f.mais?1:0)+((f.min>0||f.max!=null)?1:0)}
+function priceLabel(){const f=S.f;return f.max==null?(f.min>0?t('f_from')+' '+usd(f.min):''):(f.min>0?usd(f.min)+' – '+usd(f.max):t('f_to')+' '+usd(f.max))}
+function fChips(){const f=S.f,c=[];
+  if(f.min>0||f.max!=null)c.push(['price','',priceLabel()]);
+  f.fl.forEach(v=>c.push(['fl',v,t('fl_'+v)]));f.col.forEach(v=>c.push(['col',v,t('col_'+v)]));f.fmt.forEach(v=>c.push(['fmt',v,t('fmt_'+v)]));
+  if(f.mais)c.push(['mais','',t('f_mais')]);
+  return c.map(([k,v,l])=>'<button type="button" class="chip on" data-act="fchip" data-k="'+k+'" data-v="'+v+'" aria-label="'+esc(t('f_reset'))+': '+esc(l)+'">'+esc(l)+' <span aria-hidden="true">×</span></button>').join('')
+    +(c.length?'<button type="button" class="chip ghost" data-act="freset">'+t('f_reset')+'</button>':'')}
+function curSwitch(){return '<div class="cur-sw" role="group" aria-label="'+t('cur_t')+'">'+[['rub','₽'],['amd','֏'],['usd','$']].map(([c,s])=>'<button type="button" data-act="cur" data-v="'+c+'" aria-pressed="'+(curNow()===c)+'" aria-label="'+c.toUpperCase()+'">'+s+'</button>').join('')+'</div>'}
+function fPanel(){const f=S.f,mx=PMAX(),hi=f.max==null?mx:f.max;
+  const tg=(k,arr,lab,extra)=>'<button type="button" class="chip" data-act="ftog" data-k="'+k+'" data-v="'+arr+'" aria-pressed="'+f[k].includes(arr)+'">'+(extra||'')+lab+'</button>';
+  return '<div class="f-head"><b>'+t('f_btn')+'</b><button type="button" class="burger sm" data-act="fopen" aria-label="'+t('f_close')+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>'
+  +'<fieldset><legend>'+t('pr_t')+' · <span id="fPriceLbl">'+(priceLabel()||usd(0)+' – '+usd(mx))+'</span></legend>'
+  +'<div class="range"><span class="track"></span><span class="fill" id="fFill"></span><input type="range" id="f_min" min="0" max="'+mx+'" step="5" value="'+f.min+'" aria-label="'+t('pr_t')+', '+t('f_from')+'"><input type="range" id="f_max" min="0" max="'+mx+'" step="5" value="'+hi+'" aria-label="'+t('pr_t')+', '+t('f_to')+'"></div>'
+  +'<div class="f-row">'+[[0,50],[50,100],[100,200],[200,null]].map(([a,b])=>'<button type="button" class="chip" data-act="fprice" data-v="'+a+'-'+(b==null?'':b)+'" aria-pressed="'+(f.min===a&&f.max===b)+'">'+(b==null?t('f_from')+' '+usd(a):a?usd(a)+' – '+usd(b):t('f_to')+' '+usd(b))+'</button>').join('')+'</div></fieldset>'
+  +'<fieldset><legend>'+t('fl_t')+'</legend><div class="f-row">'+FLOWERS.map(v=>tg('fl',v,t('fl_'+v))).join('')+'</div></fieldset>'
+  +'<fieldset><legend>'+t('col_t')+'</legend><div class="f-row">'+Object.keys(COLORS).map(v=>tg('col',v,t('col_'+v),'<span class="dot" style="background:'+COLORS[v]+'"></span>')).join('')+'</div></fieldset>'
+  +'<fieldset><legend>'+t('fmt_t')+'</legend><div class="f-row">'+FORMATS.map(v=>tg('fmt',v,t('fmt_'+v))).join('')+'<button type="button" class="chip" data-act="fmais" aria-pressed="'+f.mais+'">★ '+t('f_mais')+'</button></div></fieldset>'
+  +'<div class="f-foot"><button type="button" class="btn primary" data-act="fopen" id="fShow">'+t('f_show')+' · '+fList().length+'</button><button type="button" class="btn" data-act="freset">'+t('f_reset')+'</button></div>'}
+function catalogBlock(){const l=fList(),n=fCount();
+  return '<div class="sec" id="catalog"><h2>'+t('cat_t')+'</h2></div>'
+  +'<div class="occ-row" role="group" aria-label="'+t('cat_t')+'">'+OCC_TILES.map(([o,img])=>{const p=PRODUCTS.find(x=>x.id===img);
+    return '<button type="button" class="occ" data-act="occ" data-v="'+o+'" aria-pressed="'+(S.filter===o)+'"><img src="'+p.img+'" alt="" loading="lazy" width="112" height="112"><span>'+(o==='all'?t('f_all'):o==='premium'?t('f_prem'):t('o_'+o))+'</span></button>'}).join('')+'</div>'
+  +'<div class="cat-bar"><button type="button" class="btn sm" data-act="fopen" aria-expanded="'+S.fOpen+'" aria-controls="filters" id="fBtn">'+t('f_btn')+(n?' · '+n:'')+'</button>'
+  +'<label class="sr" for="f_sort">'+t('sort_t')+'</label><select id="f_sort">'+[['pop','so_pop'],['cheap','so_cheap'],['exp','so_exp']].map(([v,k])=>'<option value="'+v+'"'+(S.f.sort===v?' selected':'')+'>'+t(k)+'</option>').join('')+'</select>'+curSwitch()+'</div>'
+  +'<div class="f-chips" id="fChips">'+fChips()+'</div>'
+  +(S.fOpen?'<div class="f-bg" data-act="fopen"></div>':'')+'<div class="filters" id="filters"'+(S.fOpen?'':' hidden')+'>'+(S.fOpen?fPanel():'')+'</div>'
+  +'<p class="note f-count" id="fCount" aria-live="polite">'+t('f_found').replace('{n}',l.length)+(curNow()==='rub'?' · '+t('rub_note'):'')+'</p>'
+  +'<div class="grid" id="grid">'+(l.length?l.map(itemCard).join(''):'')+'</div>'+(l.length?'':'<p class="muted f-empty">'+t('f_none')+'</p>')}
+function catPaint(keepPanel){const c=document.getElementById('catalog');if(!c)return;
+  const y=window.scrollY;const wrap=document.createElement('div');wrap.innerHTML=catalogBlock();
+  /* заменяем всё от заголовка каталога до блока «Особый заказ» */
+  let el=c;const parent=c.parentNode,stop=parent.querySelector('.custom');const old=[];
+  while(el&&el!==stop){old.push(el);el=el.nextSibling}
+  const focusId=document.activeElement&&document.activeElement.id,focusAct=document.activeElement&&document.activeElement.dataset&&(document.activeElement.dataset.act+'|'+(document.activeElement.dataset.k||'')+'|'+(document.activeElement.dataset.v||''));
+  old.forEach(x=>x.remove());while(wrap.firstChild)parent.insertBefore(wrap.firstChild,stop);
+  window.scrollTo(0,y);
+  if(focusId&&document.getElementById(focusId))document.getElementById(focusId).focus({preventScroll:true});
+  else if(focusAct){const [a,k,v]=focusAct.split('|');const b=document.querySelector('[data-act="'+a+'"]'+(k?'[data-k="'+k+'"]':'')+(v?'[data-v="'+v+'"]':''));if(b)b.focus({preventScroll:true})}
+  fFill();document.body.classList.toggle('f-on',S.fOpen&&matchMedia('(max-width:720px)').matches)}
+function fFill(){const a=document.getElementById('f_min'),b=document.getElementById('f_max'),fill=document.getElementById('fFill');if(!a||!fill)return;
+  const mx=+a.max,lo=Math.min(+a.value,+b.value),hi=Math.max(+a.value,+b.value);fill.style.left=(lo/mx*100)+'%';fill.style.width=((hi-lo)/mx*100)+'%'}

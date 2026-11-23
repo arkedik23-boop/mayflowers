@@ -38,7 +38,7 @@ function checkoutView(){
   +'<section class="blk"><span class="label">'+t('co_pay')+'</span><div class="opts">'+PAYS.map(x=>'<label><input type="radio" name="pay" value="'+esc(x)+'"'+((dv('pay',PAYS[0])===x)?' checked':'')+'>'+esc(x)+'</label>').join('')+'</div><p class="note" style="margin-top:8px">'+t('pay_note')+'</p></section>'
   +(K?'':'<section class="blk"><label class="check"><input type="checkbox" id="f_rem"'+(dv('f_rem',true)?' checked':'')+'>'+t('co_rem')+'</label><p class="note" style="margin-left:36px">'+t('co_remwhen')+'</p></section>')
   +'<section class="blk"><div class="line"><span>'+t('co_sub')+'</span><b class="nums">'+usd(sub)+'</b></div><div class="line"><span>'+t('co_deliv')+'</span><b class="nums">'+usd(DELIV)+'</b></div>'
-  +'<div class="line t"><span>'+t('co_total')+'</span><span class="tot">'+usd(tot)+' <small class="note">'+amd(tot)+'</small></span></div>'
+  +'<div class="line t"><span>'+t('co_total')+'</span><span class="tot">'+usd(tot)+(curNow()!=='usd'?' <small class="note">$'+tot+'</small>':'')+'</span></div>'+(curNow()==='rub'?'<p class="note" style="margin-top:8px">'+t('rub_note')+'</p>':'')
   +'<button class="btn primary" style="width:100%;margin-top:16px" data-act="place">'+t('co_place')+' · '+usd(tot)+'</button></section>'}
 function place(){
   grab();const d=S.draft,K=S.kind,req=K?['f_sign','f_you','f_yphone']:['f_rec','f_phone','f_addr','f_date','f_you','f_yphone'];let bad=0;
@@ -73,7 +73,7 @@ function studioView(){
   const o=S.orders.find(x=>x.id===S.last)||S.orders[0];
   const head=h2(t('bot_t'))+'<p class="lead">'+t('bot_hint')+'</p>';
   if(!o)return head+emptyBox(t('bot_none'),'shop',t('back'));
-  const m=t('msg_new')+' '+o.id+'\n\n'+t('m_it')+': '+itemsText(o)+'\n'+t('m_rec')+': '+o.rec+'\n'+t('m_ph')+': '+o.phone+'\n'+t('m_ad')+': '+o.addr+'\n'+t('m_wh')+': '+whenText(o)+'\n'+t('m_ca')+': '+(o.card==='text'?'«'+o.text+'»':o.card==='media'?t('m_media'):t('nocard'))+(o.anon?' ('+t('anon')+')':'')+'\n'+t('m_wrap')+': '+t('papers')[o.paper||0]+', '+t('ribbons')[o.ribbon||0]+(o.com?'\n'+t('m_com')+': '+o.com:'')+'\n'+t('m_sum')+': '+usd(Math.round((o.total-DELIV)*0.7))+(o.kind?'\n'+t('m_kind'):'')+'\n\n'+T[S.lang].st[o.status];
+  const m=t('msg_new')+' '+o.id+'\n\n'+t('m_it')+': '+itemsText(o)+'\n'+t('m_rec')+': '+o.rec+'\n'+t('m_ph')+': '+o.phone+'\n'+t('m_ad')+': '+o.addr+'\n'+t('m_wh')+': '+whenText(o)+'\n'+t('m_ca')+': '+(o.card==='text'?'«'+o.text+'»':o.card==='media'?t('m_media'):t('nocard'))+(o.anon?' ('+t('anon')+')':'')+'\n'+t('m_wrap')+': '+t('papers')[o.paper||0]+', '+t('ribbons')[o.ribbon||0]+(o.com?'\n'+t('m_com')+': '+o.com:'')+'\n'+t('m_sum')+': '+usdRaw(Math.round((o.total-DELIV)*0.7))+(o.kind?'\n'+t('m_kind'):'')+'\n\n'+T[S.lang].st[o.status];
   return head+'<div class="tg-win"><span class="label">May Flowers · Studio bot</span><div class="msg">'+esc(m)+'</div><div class="kb">'+BTN.map((b,i)=>'<button data-act="adv" data-v="'+o.id+'|'+i+'"'+(o.status===i?'':' disabled')+'>'+t(b)+'</button>').join('')+'</div></div><p class="note" style="margin-top:16px;max-width:480px">'+t('bot_rule')+'</p>'}
 function render(){
   const L=T[S.lang];document.documentElement.lang=S.lang;
@@ -84,7 +84,7 @@ function render(){
   if(S._tl!==S.lang){S._tl=S.lang;$('#tickHost').innerHTML=marquee()}
   const v={shop:shopView,checkout:checkoutView,cabinet:cabinetView,studio:studioView,done:doneView}[S.view];
   $('#main').innerHTML='<div class="view">'+v()+'</div>';
-  crLayout();crCenter();reelMount();
+  crLayout();crCenter();reelMount();fFill();
   chrome();
 }
 function chrome(){const L=T[S.lang];$('#cartBtn').textContent=L.cart+' · '+cartCount();
@@ -100,7 +100,14 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data
   if(b.dataset.mode){S.mode=b.dataset.mode;menuClose(true);return render()}
   if(b.dataset.view&&MENU_OPEN)menuClose(true);
   const a=b.dataset.act,v=b.dataset.v;
-  if(a==='add')add(+v);else if(a==='filter'){S.filter=v;render()}
+  if(a==='add')add(+v);else if(a==='filter'||a==='occ'){S.filter=v;catPaint()}
+  else if(a==='fopen'){S.fOpen=!S.fOpen;catPaint();if(S.fOpen){const f=document.querySelector('#filters .chip,#filters input');if(f)f.focus({preventScroll:true})}else{const fb=$('#fBtn');if(fb)fb.focus({preventScroll:true})}}
+  else if(a==='ftog'){const k=b.dataset.k,arr=S.f[k],i=arr.indexOf(v);i<0?arr.push(v):arr.splice(i,1);catPaint()}
+  else if(a==='fmais'){S.f.mais=!S.f.mais;catPaint()}
+  else if(a==='fprice'){const [lo,hi]=v.split('-');S.f.min=+lo;S.f.max=hi===''?null:+hi;catPaint()}
+  else if(a==='freset'){S.f={min:0,max:null,fl:[],col:[],fmt:[],mais:false,sort:S.f.sort};catPaint()}
+  else if(a==='fchip'){const k=b.dataset.k;if(k==='price'){S.f.min=0;S.f.max=null}else if(k==='mais')S.f.mais=false;else S.f[k]=S.f[k].filter(x=>x!==v);catPaint()}
+  else if(a==='cur'){S.cur=v;try{localStorage.setItem('may_cur',v)}catch(e){}const y=window.scrollY;render();window.scrollTo(0,y);if(MENU_OPEN)$('#menu').innerHTML=menuInner()}
   else if(a==='catalog'){const c=$('#catalog');if(c)c.scrollIntoView({behavior:'smooth'})}
   else if(a==='mgr'){menuClose(true);toast(t('mgr'))}
   else if(a==='menuclose')menuClose();
@@ -125,7 +132,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data
   else if(a==='adv'){const [id,i]=v.split('|'),o=S.orders.find(x=>x.id===id);if(o&&o.status===+i){o.status=+i+1;save();render();toast(T[S.lang].st[o.status])}}
 });
 document.addEventListener('submit',e=>{if(e.target.id==='aiForm'){e.preventDefault();aiAsk()}else if(e.target.id==='vipForm'){e.preventDefault();sendVip()}});
-document.addEventListener('input',e=>{if(e.target.id==='ai_q')S.ai.q=e.target.value});
+document.addEventListener('input',e=>{if(e.target.id==='ai_q')S.ai.q=e.target.value;
+  else if(e.target.id==='f_min'||e.target.id==='f_max'){const a=+$('#f_min').value,b=+$('#f_max').value,mx=+$('#f_max').max;S.f.min=Math.min(a,b);S.f.max=Math.max(a,b)>=mx?null:Math.max(a,b);fFill();
+    const l=$('#fPriceLbl');if(l)l.textContent=priceLabel()||usd(0)+' – '+usd(mx);clearTimeout(S._ft);S._ft=setTimeout(()=>catPaint(),120)}});
+document.addEventListener('change',e=>{if(e.target.id==='f_sort'){S.f.sort=e.target.value;catPaint()}});
 document.addEventListener('keydown',e=>{if(e.target.id==='ai_q'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();aiAsk()}});
 document.addEventListener('change',e=>{if(S.view!=='checkout')return;const id=e.target.id,nm=e.target.name;if(nm==='card'||nm==='to'||id==='f_win'){grab();render()}});
 load();render();
@@ -236,6 +246,7 @@ function menuInner(){const L=T[S.lang];
   return '<div class="menu-h"><span class="label">'+L.mn_open+'</span><button class="burger" type="button" data-act="menuclose" aria-label="'+L.mn_close+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>'
   +'<ul class="menu-list">'+items.map(([k,l])=>'<li><button type="button" data-nav="'+k+'">'+L[l]+'</button></li>').join('')
   +'<li><button type="button" data-act="mgr">'+L.mn_contact+'</button></li></ul>'
+  +'<div class="menu-sub"><span class="label">'+L.cur_t+'</span>'+curSwitch()+'</div>'
   +'<div class="menu-sub"><span class="label">'+L.mn_lang+'</span><div class="tabs" role="group" aria-label="'+L.mn_lang+'">'+[['ru','RU'],['en','EN'],['hy','HY']].map(([c,n])=>'<button class="tab" type="button" data-lang="'+c+'" aria-pressed="'+(S.lang===c)+'">'+n+'</button>').join('')+'</div></div>'
   +(TG||!DEMO_UI?'':'<div class="menu-sub"><span class="label">'+L.mn_demo+'</span><div class="tabs"><button class="tab" type="button" data-view="studio" aria-pressed="'+(S.view==='studio')+'">'+L.nav_studio+'</button><button class="tab" type="button" data-mode="site" aria-pressed="'+(S.mode==='site')+'">'+L.m_site+'</button><button class="tab" type="button" data-mode="tg" aria-pressed="'+(S.mode==='tg')+'">'+L.m_tg+'</button></div></div>')}
 function menuOpen(){MENU_OPEN=true;const w=$('#menuWrap'),m=$('#menu');m.innerHTML=menuInner();w.hidden=false;document.body.classList.add('menu-on');
@@ -246,7 +257,7 @@ function navTo(k){const anchors={catalog:'catalog',promo:'promo',ai:'ai',kind:'k
   if(anchors[k]){if(S.view!=='shop')go('shop');const el=document.getElementById(anchors[k]);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});const f=el.querySelector('h2,h1');if(f){f.setAttribute('tabindex','-1');f.focus({preventScroll:true})}}return}
   if(k==='cabinet')return go('cabinet');
   if(k==='bonus'){go('cabinet');setTimeout(()=>{const el=document.querySelector('.bonus');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}}
-document.addEventListener('keydown',e=>{if(!MENU_OPEN)return;if(e.key==='Escape'){e.preventDefault();menuClose()}
+document.addEventListener('keydown',e=>{if(!MENU_OPEN&&S.fOpen&&e.key==='Escape'){S.fOpen=false;catPaint();const fb=$('#fBtn');if(fb)fb.focus();return}if(!MENU_OPEN)return;if(e.key==='Escape'){e.preventDefault();menuClose()}
   else if(e.key==='Tab'){const f=[...$('#menu').querySelectorAll('button')];if(!f.length)return;const a=f[0],z=f[f.length-1];
     if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}});
 
