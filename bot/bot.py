@@ -195,6 +195,8 @@ def init_db():
             token TEXT PRIMARY KEY, order_id TEXT UNIQUE, rec_code TEXT UNIQUE, client_chat INTEGER,
             kind TEXT, file_id TEXT, created REAL, recorded REAL, opened REAL, replies INTEGER DEFAULT 0);
         CREATE TABLE IF NOT EXISTS waiting_card(chat_id INTEGER PRIMARY KEY, token TEXT);
+        CREATE TABLE IF NOT EXISTS vip_requests(
+            id INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT, client_chat INTEGER, created REAL);
         CREATE TABLE IF NOT EXISTS reminders(
             id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id INTEGER, order_id TEXT, target TEXT,
             label TEXT, lang TEXT, sent7 INTEGER DEFAULT 0, sent1 INTEGER DEFAULT 0);
@@ -1382,6 +1384,9 @@ class Intake(BaseHTTPRequestHandler):
         if p.startswith("/api/card/") and p.endswith("/reply"):
             self.card_reply(p[len("/api/card/"):-len("/reply")])
             return
+        if p == "/api/vip":
+            self.vip_request()
+            return
         if self.path == "/api/reminders/delete":
             uid = self.tg_user()
             if uid is None:
@@ -1432,6 +1437,51 @@ class Intake(BaseHTTPRequestHandler):
         if c and not client_chat:
             resp["record_link"] = f"https://t.me/{BOT_USERNAME}?start=rec_{c['rec_code']}"
         self.reply(200, resp)
+
+    # ---- «Маис лично»: заявка на премиум-вручение, только админам
+    def vip_request(self):
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0 or length > 8_000:
+            self.reply(413, {"ok": False, "error": "пустой или слишком большой запрос"})
+            return
+        try:
+            v = json.loads(self.rfile.read(length).decode())
+            assert isinstance(v, dict)
+        except Exception:
+            self.reply(400, {"ok": False, "error": "битый JSON"})
+            return
+        chat, uname = None, ""
+        init = self.headers.get("X-Telegram-Init-Data")
+        if init:
+            user = verify_init_data(init)
+            if not user or not user.get("id"):
+                self.reply(401, {"ok": False, "error": "подпись Telegram не прошла проверку"})
+                return
+            chat, uname = int(user["id"]), user.get("username") or ""
+        else:
+            key = self.headers.get("X-Intake-Key") or ""
+            if not INTAKE_KEY or not secrets.compare_digest(str(key), INTAKE_KEY):
+                self.reply(401, {"ok": False, "error": "неверный ключ"})
+                return
+        f = {k: str(v.get(k) or "").strip()[:500] for k in ("name", "phone", "recipient", "date", "comment", "lang")}
+        if not f["name"] or not f["phone"] or not f["recipient"]:
+            self.reply(422, {"ok": False, "error": "нужны имя, телефон и кого поздравляем"})
+            return
+        ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
+        if not reply_allowed("vip:" + ip):
+            self.reply(429, {"ok": False, "error": "слишком много заявок"})
+            return
+        q("INSERT INTO vip_requests(payload,client_chat,created) VALUES(?,?,?)",
+          (json.dumps(f, ensure_ascii=False), chat, time.time()))
+        when = when_text({"date": f["date"]}) if f["date"] else ""
+        notify_admins("👑 <b>Заявка: Маис лично</b> (от $" + esc(v.get("price_from_usd") or 1000) + ")\n\n"
+                      f"🙋 {esc(f['name'])}, <code>{esc(f['phone'])}</code>"
+                      + (f" · Telegram @{esc(uname)}" if uname else "") + "\n"
+                      f"🎁 Кого поздравляем: {esc(f['recipient'])}\n"
+                      + (f"📅 Желаемая дата: {esc(when)}\n" if when else "")
+                      + (f"📝 {esc(f['comment'])}\n" if f["comment"] else "")
+                      + "\nСвяжитесь с клиентом в течение дня и согласуйте дату с Маисом.")
+        self.reply(200, {"ok": True})
 
     # ---- аудио/видео-открытка по QR: доступ даёт только длинный случайный токен
     def card_get(self, rest):

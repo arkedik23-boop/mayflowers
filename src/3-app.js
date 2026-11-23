@@ -102,6 +102,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data
   else if(a==='catalog'){const c=$('#catalog');if(c)c.scrollIntoView({behavior:'smooth'})}
   else if(a==='mgr'){menuClose(true);toast(t('mgr'))}
   else if(a==='menuclose')menuClose();
+  else if(a==='vip'){S.vip.open=true;render();const f=$('#v_name');if(f){f.focus({preventScroll:true});$('#vip').scrollIntoView({behavior:'smooth',block:'start'})}}
   else if(a==='checkout'||a==='cabinet'||a==='studio'||a==='shop')go(a);
   else if(a==='inc'||a==='dec'){grab();const pr=/p$/.test(v),c=S.cart.find(x=>x.id===parseInt(v)&&!!x.promo===pr);if(c){c.q+=a==='inc'?1:-1;if(c.q<1)S.cart=S.cart.filter(x=>x!==c)}render()}
   else if(a==='ai'){grab();const n=(S.draft.f_rec||'').trim();S.draft.f_text=t(S.draft.f_tone||'ai_warm').replace('{n}',n||'').replace(/^[,\s]+/,'');render()}
@@ -121,7 +122,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data
   else if(a==='reorder'){const o=S.orders.find(x=>x.id===v);if(o){S.cart=o.items.map(i=>({id:i.id,q:i.q}));S.draft={f_rec:o.rec,f_phone:o.phone,f_addr:o.addr,f_occ:o.occ,f_you:o.you,f_yphone:o.yphone};go('checkout')}}
   else if(a==='adv'){const [id,i]=v.split('|'),o=S.orders.find(x=>x.id===id);if(o&&o.status===+i){o.status=+i+1;save();render();toast(T[S.lang].st[o.status])}}
 });
-document.addEventListener('submit',e=>{if(e.target.id==='aiForm'){e.preventDefault();aiAsk()}});
+document.addEventListener('submit',e=>{if(e.target.id==='aiForm'){e.preventDefault();aiAsk()}else if(e.target.id==='vipForm'){e.preventDefault();sendVip()}});
 document.addEventListener('input',e=>{if(e.target.id==='ai_q')S.ai.q=e.target.value});
 document.addEventListener('keydown',e=>{if(e.target.id==='ai_q'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();aiAsk()}});
 document.addEventListener('change',e=>{if(S.view!=='checkout')return;const id=e.target.id,nm=e.target.name;if(nm==='card'||nm==='to'||id==='f_win'){grab();render()}});
@@ -229,7 +230,7 @@ function bonusBlock(list){const now=Date.now(),spent=list.filter(x=>now-x.ts<30*
 
 /* Burger menu: every section of the shop in one place */
 function menuInner(){const L=T[S.lang];
-  const items=[['catalog','mn_cat'],promoOn()?['promo','mn_promo']:null,['ai','mn_ai'],['kind','mn_kind'],['cabinet','mn_cab'],['bonus','mn_bonus']].filter(Boolean);
+  const items=[['catalog','mn_cat'],promoOn()?['promo','mn_promo']:null,['ai','mn_ai'],['kind','mn_kind'],['vip','mn_vip'],['cabinet','mn_cab'],['bonus','mn_bonus']].filter(Boolean);
   return '<div class="menu-h"><span class="label">'+L.mn_open+'</span><button class="burger" type="button" data-act="menuclose" aria-label="'+L.mn_close+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>'
   +'<ul class="menu-list">'+items.map(([k,l])=>'<li><button type="button" data-nav="'+k+'">'+L[l]+'</button></li>').join('')
   +'<li><button type="button" data-act="mgr">'+L.mn_contact+'</button></li></ul>'
@@ -239,10 +240,22 @@ function menuOpen(){MENU_OPEN=true;const w=$('#menuWrap'),m=$('#menu');m.innerHT
   $('#burger').setAttribute('aria-expanded','true');requestAnimationFrame(()=>{w.classList.add('on');const f=m.querySelector('[data-nav]');if(f)f.focus()})}
 function menuClose(silent){if(!MENU_OPEN)return;MENU_OPEN=false;const w=$('#menuWrap');w.classList.remove('on');w.hidden=true;document.body.classList.remove('menu-on');
   const b=$('#burger');b.setAttribute('aria-expanded','false');if(!silent)b.focus()}
-function navTo(k){const anchors={catalog:'catalog',promo:'promo',ai:'ai',kind:'kind'};
+function navTo(k){const anchors={catalog:'catalog',promo:'promo',ai:'ai',kind:'kind',vip:'vip'};
   if(anchors[k]){if(S.view!=='shop')go('shop');const el=document.getElementById(anchors[k]);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});const f=el.querySelector('h2,h1');if(f){f.setAttribute('tabindex','-1');f.focus({preventScroll:true})}}return}
   if(k==='cabinet')return go('cabinet');
   if(k==='bonus'){go('cabinet');setTimeout(()=>{const el=document.querySelector('.bonus');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}}
 document.addEventListener('keydown',e=>{if(!MENU_OPEN)return;if(e.key==='Escape'){e.preventDefault();menuClose()}
   else if(e.key==='Tab'){const f=[...$('#menu').querySelectorAll('button')];if(!f.length)return;const a=f[0],z=f[f.length-1];
     if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}});
+
+/* Заявка «Маис лично» уходит админам в бот (POST /api/vip), в студии не раздаётся */
+function sendVip(){const g=id=>(($('#'+id)||{}).value||'').trim(),req=['v_name','v_phone','v_rec'];let bad=0;
+  req.forEach(k=>{const e=$('#'+k),m=document.querySelector('[data-e='+k+']'),ok=!!g(k);if(e)e.setAttribute('aria-invalid',ok?'false':'true');if(m)m.textContent=ok?'':t('req');if(!ok)bad++});
+  if(bad){const f=document.querySelector('#vipForm [aria-invalid=true]');if(f)f.focus();return}
+  const body={name:g('v_name'),phone:g('v_phone'),recipient:g('v_rec'),date:g('v_date'),comment:g('v_com'),lang:S.lang,price_from_usd:VIP.from};
+  S.draft.f_you=body.name;S.draft.f_yphone=body.phone;
+  const done=()=>{S.vip.status='ok';render();const el=$('#vip');if(el)el.scrollIntoView({block:'start'})};
+  if(!ORDER_API.url)return done();
+  S.vip.status='sending';const btn=document.querySelector('#vipForm [type=submit]');if(btn)btn.disabled=true;
+  fetch(ORDER_API.url.replace(/\/$/,'')+'/api/vip',{method:'POST',headers:TG?{'Content-Type':'application/json','X-Telegram-Init-Data':TG.initData}:{'Content-Type':'application/json','X-Intake-Key':ORDER_API.key},body:JSON.stringify(body)})
+    .then(r=>{if(!r.ok)throw r.status;done()}).catch(()=>{S.vip.status='err';render()})}

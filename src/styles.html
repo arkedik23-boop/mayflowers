@@ -282,4 +282,25 @@ body.menu-on{overflow:hidden}
 @keyframes glint{0%{background-position:100% 0}35%,100%{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.logo .wm{animation:none;background:none;color:var(--ink)}.logo .wm em{color:inherit}}
 #catalog,#promo,#ai,#kind,#bonus{scroll-margin-top:88px}
+.vip{--ink:oklch(0.96 0.008 140);--bg:oklch(0.19 0.018 150);--muted:color-mix(in oklab,var(--ink) 64%,var(--bg));--line:color-mix(in oklab,var(--ink) 20%,var(--bg));--tint:color-mix(in oklab,var(--ink) 8%,var(--bg));--accent:oklch(0.72 0.17 5);--accent-fg:oklch(0.15 0.02 5);
+  background:var(--bg);color:var(--ink);margin-block:64px;padding:clamp(24px,5vw,56px);border:1px solid color-mix(in oklab,var(--ink) 25%,transparent);color-scheme:dark}
+.vip-in{display:grid;grid-template-columns:7fr 5fr;gap:32px 56px;align-items:center}
+.vip-body{min-width:0}
+.vip h2{font-size:clamp(36px,6vw,72px);font-weight:800;letter-spacing:-.045em;line-height:1.02;margin:8px 0 24px;text-wrap:balance}
+.vip h2 .h-serif{display:block;font-family:'Bodoni Moda','Noto Serif Armenian','Didot','Bodoni 72',Georgia,serif;font-weight:400;letter-spacing:-.025em}
+.vip-d{color:var(--muted);max-width:56ch;text-wrap:pretty;margin-bottom:24px}
+.vip-price{display:flex;align-items:baseline;gap:8px;margin-bottom:16px}
+.vip-price span{color:var(--muted)}
+.vip-price b{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.03em;color:var(--accent)}
+.vip-li{list-style:none;padding:0;margin:0 0 24px;border-top:1px solid var(--line)}
+.vip-li li{border-bottom:1px solid var(--line);padding:10px 0;font-size:15px}
+.vip .note{margin-top:16px}
+.vip-ok{font-weight:700;font-size:18px;max-width:48ch}
+.vip-form{margin-bottom:8px}
+.vip-media{margin:0;position:relative;border-radius:28px;overflow:hidden;aspect-ratio:9/16;max-height:620px;background:var(--tint);isolation:isolate}
+.vip-media img,.vip-media video{width:100%;height:100%;object-fit:cover;display:block}
+.vip-media img{filter:grayscale(.2) brightness(.8)}
+.vip-soon{position:absolute;left:16px;right:16px;bottom:16px;font-size:13px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:10px 12px;border-radius:12px;text-wrap:balance}
+#vip{scroll-margin-top:88px}
+@media (max-width:720px){.vip-in{grid-template-columns:1fr}.vip-media{max-width:320px;margin-inline:auto;width:100%}}
 </style>

@@ -1,7 +1,7 @@
 const REEL=document.createElement('video');
 (()=>{const rm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
   REEL.src='vid/mais.mp4';REEL.poster='vid/mais.jpg';REEL.muted=true;REEL.loop=true;REEL.playsInline=true;REEL.setAttribute('playsinline','');REEL.preload='metadata';REEL.autoplay=!rm;if(rm)REEL.controls=true})();
-const S={lang:'ru',mode:'site',view:'shop',cart:[],filter:'all',orders:[],last:null,draft:{},kind:false,ai:{q:'',status:'idle',reply:'',picks:[],card:'',local:false},pick:101,pq:5,rot:0,crTarget:null};
+const S={vip:{open:false,status:'idle'},lang:'ru',mode:'site',view:'shop',cart:[],filter:'all',orders:[],last:null,draft:{},kind:false,ai:{q:'',status:'idle',reply:'',picks:[],card:'',local:false},pick:101,pq:5,rot:0,crTarget:null};
 const LOC={ru:'ru-RU',en:'en-GB',hy:'hy-AM'};
 const $=s=>document.querySelector(s);
 const t=k=>T[S.lang][k];
@@ -50,6 +50,7 @@ function shopView(){
   +'<section class="ai" id="ai">'+aiInner()+'</section>'
   +'<ol class="steps"><li><span class="label">01</span><b>'+t('s1t')+'</b>'+t('s1d')+'</li><li><span class="label">02</span><b>'+t('s2t')+'</b>'+t('s2d')+'</li><li><span class="label">03</span><b>'+t('s3t')+'</b>'+t('s3d')+'</li></ol>'
   +'<section class="kind" id="kind"><div><p class="label">'+t('kind_k')+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
+  +vipBlock()
   +'<div class="sec" id="catalog"><h2>'+t('cat_t')+'</h2><div class="tabs" role="group">'
   +['all'].concat(OCC).map(o=>'<button class="tab" data-act="filter" data-v="'+o+'" aria-pressed="'+(S.filter===o)+'">'+(o==='all'?t('f_all'):t('o_'+o))+'</button>').join('')+'</div></div>'
   +'<div class="grid">'+list.map(p=>'<article class="item"><div class="tintbox">'+art(p)+'</div><h3>'+esc(pn(p))+'</h3><p class="comp">'+esc(pk(p))+'</p>'
@@ -95,3 +96,21 @@ async function aiAsk(){const q=(S.ai.q||'').trim();if(!q){toast(t('ai_empty'));r
       if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(code))SAMPLE=null}}
   S.ai=Object.assign(S.ai,{status:'done'},aiLocal(q));aiPaint()}
 (async()=>{try{if(window.claude&&typeof claude.use==='function')SAMPLE=await claude.use('sample')}catch(e){SAMPLE=null}})();
+
+/* «Маис лично»: премиум-вручение от $1000, только по заявке */
+function vipBlock(){const v=S.vip,li=t('vip_li');
+  const media=VIP.video?'<video src="'+esc(VIP.video)+'" poster="vid/mais.jpg" controls playsinline preload="none"></video>':'<img src="vid/mais.jpg" alt="" loading="lazy" decoding="async"><span class="vip-soon">'+t('vip_vid')+'</span>';
+  let act;
+  if(v.status==='ok')act='<p class="vip-ok" role="status">'+t('vip_ok')+'</p>';
+  else if(v.open)act='<form class="vip-form" id="vipForm" novalidate><div class="fields">'
+    +fld('v_name',t('co_yname'),S.draft.f_you||'','autocomplete="name" aria-required="true"')+fld('v_phone',t('co_yphone'),S.draft.f_yphone||'','type="tel" inputmode="tel" autocomplete="tel" aria-required="true"')
+    +fld('v_rec',t('vip_rec'),'','aria-required="true"')+fld('v_date',t('vip_date'),'','type="date" min="'+ymd(new Date())+'"')
+    +'<label class="full">'+t('vip_com')+'<textarea id="v_com" placeholder="'+esc(t('vip_com_ph'))+'"></textarea></label></div>'
+    +(v.status==='err'?'<p class="err" role="alert" style="margin-top:12px">'+t('vip_fail')+'</p>':'')
+    +'<button class="btn primary" type="submit" style="margin-top:16px"'+(v.status==='sending'?' disabled':'')+'>'+t('vip_send')+'</button></form>';
+  else act='<button class="btn primary" type="button" data-act="vip">'+t('vip_btn')+'</button>';
+  return '<section class="vip" id="vip" aria-labelledby="vipT"><div class="vip-in"><div class="vip-body"><p class="label">'+t('vip_k')+'</p>'
+  +'<h2 id="vipT"><span class="h-serif">'+t('vip_t1')+'</span> '+t('vip_t2')+'</h2><p class="vip-d">'+t('vip_d')+'</p>'
+  +'<p class="vip-price"><span>'+t('vip_from')+'</span> <b class="nums">$'+VIP.from.toLocaleString('en-US')+'</b></p>'
+  +'<ul class="vip-li">'+li.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>'+act+'<p class="note">'+t('vip_note')+'</p></div>'
+  +'<figure class="vip-media">'+media+'</figure></div></section>'}
