@@ -49,11 +49,11 @@ function place(){
     date:K?ymd(new Date()):d.f_date,win:K?'asap':(d.f_win||'asap'),exact:K?'':(d.f_exact||''),rec:K?t('kind_rec'):d.f_rec.trim(),phone:K?d.f_yphone.trim():d.f_phone.trim(),addr:K?t('kind_addr'):d.f_addr.trim(),
     occ:K?'thanks':(d.f_occ||'bd'),card:K?'text':(d.card||'none'),text:K?t('sign_card').replace('{n}',sign):(d.card==='text'?(d.f_text||''):''),anon:K?false:!!d.f_anon,you:d.f_you.trim(),yphone:d.f_yphone.trim(),pay:d.pay||PAYS[0],remind:K?false:d.f_rem!==false,status:0,ts:Date.now(),paper:+(d.f_paper||0),ribbon:+(d.f_ribbon||0),com:(d.f_com||'').trim()};
   sendToBot(o);if(TG)S.me=null;
-  S.recLink=null;S.orders.unshift(o);save();S.last=o.id;S.cart=[];S.draft={};S.kind=false;S.view='done';render();window.scrollTo(0,0)}
+  S.recLink=null;S.remLink=null;S.orders.unshift(o);save();S.last=o.id;S.cart=[];S.draft={};S.kind=false;S.view='done';render();window.scrollTo(0,0)}
 function doneView(){const o=S.orders.find(x=>x.id===S.last);if(!o)return '';
   return '<div class="done"><span class="label nums">'+esc(o.id)+'</span><h2>'+t('ok_t')+'</h2><p>'+t('ok_d')+'</p><div class="acts">'
   +'<button class="btn primary" data-act="cabinet">'+t('ok_cab')+'</button>'
-  +(o.remind?'<a class="btn" target="_blank" rel="noopener" href="'+calLink(o)+'">'+t('ok_cal')+'</a>':'')
+  +(o.remind&&!TG&&S.remLink?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(S.remLink)+'">'+t('ok_rem')+'</a>':'')+(o.remind?'<a class="btn" target="_blank" rel="noopener" href="'+calLink(o)+'">'+t('ok_cal')+'</a>':'')
   +(DEMO_UI?'<button class="btn" data-act="studio">'+t('nav_studio')+'</button>':'')+'</div>'
   +(o.card==='media'?'<div class="blk" style="margin-top:32px"><span class="label">'+t('card_media')+'</span>'+(TG?'<p>'+t('ok_rec_tg')+'</p>':(S.recLink?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(S.recLink)+'">'+t('ok_rec')+'</a>':'<p class="note">'+t('card_media_d')+'</p>'))+'</div>':'')+'</div>'}
 function itemsText(o){return o.items.map(i=>{const p=PRODUCTS.find(x=>x.id===i.id);return pn(p)+' × '+i.q}).join(', ')}
@@ -156,7 +156,7 @@ function sendToBot(o){if(!ORDER_API.url)return;
     wrapping:{paper:R.papers[o.paper||0],ribbon:R.ribbons[o.ribbon||0]},kindness:!!o.kind,kind_hands:o.kind?{sign:o.sign,public:!!o.pub}:null,comment:com,payment:{method:o.pay,status:'demo'},lang:S.lang,remind:!!o.remind};
   fetch(ORDER_API.url.replace(/\/$/,'')+'/api/orders',{method:'POST',headers:TG?{'Content-Type':'application/json','X-Telegram-Init-Data':TG.initData}:{'Content-Type':'application/json','X-Intake-Key':ORDER_API.key},body:JSON.stringify(body)})
     .then(r=>{if(!r.ok)throw r.status;if(TG)try{TG.HapticFeedback.notificationOccurred('success')}catch(e){}return r.json().catch(()=>({}))})
-    .then(j=>{if(j&&j.record_link&&/^https:\/\/t\.me\//.test(j.record_link)){S.recLink=j.record_link;if(S.view==='done')render()}}).catch(()=>toast(t('send_fail')))}
+    .then(j=>{let ch=false;if(j&&j.record_link&&/^https:\/\/t\.me\//.test(j.record_link)){S.recLink=j.record_link;ch=true}if(j&&j.remind_link&&/^https:\/\/t\.me\//.test(j.remind_link)){S.remLink=j.remind_link;ch=true}if(ch&&S.view==='done')render()}).catch(()=>toast(t('send_fail')))}
 
 /* Telegram mini app: same page inside Telegram, with Telegram's own main and back buttons */
 function tgSync(){if(!TG)return;

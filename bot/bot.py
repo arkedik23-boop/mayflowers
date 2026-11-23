@@ -203,6 +203,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS ai_msgs(id INTEGER PRIMARY KEY AUTOINCREMENT, chat INTEGER, role TEXT, content TEXT, ts REAL);
         CREATE TABLE IF NOT EXISTS ai_usage(day TEXT, chat INTEGER, n INTEGER DEFAULT 0, PRIMARY KEY(day, chat));
         CREATE TABLE IF NOT EXISTS human_mode(chat INTEGER PRIMARY KEY, until REAL);
+        CREATE TABLE IF NOT EXISTS rem_links(code TEXT PRIMARY KEY, order_id TEXT, created REAL);
         CREATE TABLE IF NOT EXISTS vip_requests(
             id INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT, client_chat INTEGER, created REAL);
         CREATE TABLE IF NOT EXISTS reminders(
@@ -330,8 +331,10 @@ CLIENT = {
         "delivered": "Букет по заказу {id} доставлен 🌸 Спасибо, что дарите добро!",
         "cancelled": "Заказ {id} отменён. Менеджер свяжется с вами.",
         "none": "У вас пока нет заказов.",
-        "r7": "Через неделю повод, на который вы год назад дарили цветы: {label}. Подобрать букет заранее?",
-        "r1": "Завтра {label}! Ещё успеем доставить букет.",
+        "r7": "Через 3 дня, {date}, — {label}. Год назад в этот день вы заказывали букет «{bouquet}» {who}. Подобрать букет заранее?",
+        "r1": "Завтра, {date}, — {label}. Ещё успеем собрать и доставить букет {who} 🌸",
+        "same": "🔁 Повторить тот же букет",
+        "rem_on": "Готово 🔔 Напомню о дне «{label}» за 3 дня и накануне, каждый год.",
         "again": "💐 Выбрать букет",
     },
     "en": {
@@ -345,8 +348,10 @@ CLIENT = {
         "delivered": "Order {id} delivered 🌸 Thank you for giving kindness!",
         "cancelled": "Order {id} was cancelled. A manager will contact you.",
         "none": "You have no orders yet.",
-        "r7": "In a week, the occasion you sent flowers for last year: {label}. Pick a bouquet in advance?",
-        "r1": "Tomorrow: {label}! There is still time to deliver flowers.",
+        "r7": "In 3 days, {date}: {label}. A year ago you ordered the “{bouquet}” bouquet for {who} on this day. Pick a bouquet in advance?",
+        "r1": "Tomorrow, {date}: {label}. There is still time to build and deliver flowers for {who} 🌸",
+        "same": "🔁 Same bouquet again",
+        "rem_on": "Done 🔔 I will remind you about “{label}” 3 days before and the day before, every year.",
         "again": "💐 Pick a bouquet",
     },
     "hy": {
@@ -360,8 +365,10 @@ CLIENT = {
         "delivered": "Պատվեր {id}-ն առաքված է 🌸 Շնորհակալություն բարության համար։",
         "cancelled": "Պատվեր {id}-ն չեղարկված է։ Մենեջերը կկապվի ձեզ հետ։",
         "none": "Դեռ պատվերներ չունեք։",
-        "r7": "Մեկ շաբաթից առիթ, որի համար անցյալ տարի ծաղիկներ եք նվիրել՝ {label}։ Ընտրե՞նք ծաղկեփունջ նախապես։",
-        "r1": "Վաղը՝ {label}։ Դեռ կհասցնենք առաքել։",
+        "r7": "3 օրից՝ {date}, {label}։ Անցյալ տարի այս օրը դուք պատվիրել էիք «{bouquet}» ծաղկեփունջը {who}-ի համար։ Ընտրե՞նք ծաղկեփունջ նախապես։",
+        "r1": "Վաղը՝ {date}, {label}։ Դեռ կհասցնենք հավաքել և առաքել ծաղկեփունջը {who}-ի համար 🌸",
+        "same": "🔁 Կրկնել նույն ծաղկեփունջը",
+        "rem_on": "Պատրաստ է 🔔 Կհիշեցնեմ «{label}» օրվա մասին 3 օր առաջ և նախորդ օրը, ամեն տարի։",
         "again": "💐 Ընտրել ծաղկեփունջ",
     },
 }
@@ -451,6 +458,75 @@ def add_reminder(o, chat_id):
       (chat_id, o["id"], target.isoformat(), label, lg))
 
 
+REMIND_DAYS = int(os.environ.get("REMIND_DAYS", "3"))  # за сколько дней до годовщины первое напоминание
+MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September",
+             "October", "November", "December"]
+
+
+def day_text(d, lg):
+    if lg == "en":
+        return f"{MONTHS_EN[d.month - 1]} {d.day}"
+    if lg == "hy":
+        return f"{d.day:02d}.{d.month:02d}"
+    return f"{d.day} {MONTHS[d.month - 1]}"
+
+
+def reminder_message(r, key, target):
+    """Текст напоминания и кнопки: повторить тот же букет или выбрать другой."""
+    lg = r["lang"] if r["lang"] in CLIENT else "ru"
+    _, o = get_order(r["order_id"])
+    o = o or {}
+    items = o.get("items") or [{}]
+    bouquet = items[0].get("name") or "—"
+    sku = items[0].get("sku")
+    who = (o.get("recipient") or {}).get("name") or "❤"
+    label = r["label"].split(" — ")[0]
+    text = esc(CLIENT[lg][key].format(date=day_text(target, lg), label=label, bouquet=bouquet, who=who_for(who, lg)))
+    rows = []
+    if WEBAPP_URL:
+        if sku:
+            rows.append([(CLIENT[lg]["same"], "webapp:" + shop_url(add=sku))])
+        rows.append([(CLIENT[lg]["again"], "webapp:" + shop_url())])
+    return text, rows or None
+
+
+def who_for(name, lg):
+    """«для мамы»: простое склонение частых слов, остальное как есть."""
+    if lg != "ru":
+        return name or "❤"
+    if not name or name == "❤":
+        return ""
+    forms = {"мама": "мамы", "папа": "папы", "бабушка": "бабушки", "сестра": "сестры", "жена": "жены",
+             "подруга": "подруги", "дочка": "дочки", "дочь": "дочери", "брат": "брата", "муж": "мужа", "сын": "сына"}
+    f = forms.get(name.lower())
+    return f"для {f}" if f else f"(получатель — {name})"
+
+
+def remind_link_for(order_id):
+    """Ссылка для заказа с сайта: человек открывает бота, и напоминания привязываются к его Telegram."""
+    code = secrets.token_urlsafe(9)
+    q("INSERT INTO rem_links(code,order_id,created) VALUES(?,?,?)", (code, order_id, time.time()))
+    return f"https://t.me/{BOT_USERNAME}?start=rem_{code}"
+
+
+def remind_start(chat, m, code):
+    r = q("SELECT * FROM rem_links WHERE code=?", (code,), one=True)
+    lg = user_lang(m.get("from") or {})
+    if not r:
+        send(chat, esc(CARD_TX.get(lg, CARD_TX["ru"])["bad"]))
+        return
+    row, o = get_order(r["order_id"])
+    if not row:
+        send(chat, esc(CARD_TX.get(lg, CARD_TX["ru"])["bad"]))
+        return
+    q("UPDATE orders SET client_chat=COALESCE(client_chat, ?) WHERE id=?", (chat, r["order_id"]))
+    if not q("SELECT 1 FROM reminders WHERE order_id=? AND chat_id=?", (r["order_id"], chat), one=True):
+        add_reminder(o, chat)
+    rem = q("SELECT label FROM reminders WHERE order_id=? AND chat_id=?", (r["order_id"], chat), one=True)
+    label = (rem["label"] if rem else "").split(" — ")[0] or "—"
+    send(chat, esc(CLIENT[lang_of(o)]["rem_on"].format(label=label)))
+
+
 def local_now():
     return datetime.utcnow() + timedelta(hours=TZ_OFFSET)
 
@@ -464,12 +540,13 @@ def reminder_loop():
                 for r in q("SELECT * FROM reminders"):
                     target = datetime.strptime(r["target"], "%Y-%m-%d").date()
                     days = (target - today).days
-                    o = {"lang": r["lang"]}
-                    if days <= 7 and days > 1 and not r["sent7"]:
-                        send(r["chat_id"], esc(CLIENT[r["lang"]]["r7"].format(label=r["label"])), shop_button(o, "again"))
+                    if days <= REMIND_DAYS and days > 1 and not r["sent7"]:
+                        text, rows = reminder_message(r, "r7", target)
+                        send(r["chat_id"], text, rows)
                         q("UPDATE reminders SET sent7=1 WHERE id=?", (r["id"],))
                     elif days <= 1 and days >= 0 and not r["sent1"]:
-                        send(r["chat_id"], esc(CLIENT[r["lang"]]["r1"].format(label=r["label"])), shop_button(o, "again"))
+                        text, rows = reminder_message(r, "r1", target)
+                        send(r["chat_id"], text, rows)
                         q("UPDATE reminders SET sent1=1, sent7=1 WHERE id=?", (r["id"],))
                     elif days < 0:
                         nxt = next_occurrence(r["target"], today)
@@ -643,6 +720,9 @@ def handle_message(m):
     if cmd == "/start":
         if arg.startswith("rec_"):
             card_start(chat, m, arg[4:])
+            return
+        if arg.startswith("rem_"):
+            remind_start(chat, m, arg[4:])
             return
         if arg:
             inv = q("SELECT * FROM invites WHERE code=? AND used=0", (arg,), one=True)
@@ -1458,6 +1538,8 @@ class Intake(BaseHTTPRequestHandler):
         c = q("SELECT rec_code FROM cards WHERE order_id=?", (oid,), one=True)
         if c and not client_chat:
             resp["record_link"] = f"https://t.me/{BOT_USERNAME}?start=rec_{c['rec_code']}"
+        if o.get("remind") and not client_chat:
+            resp["remind_link"] = remind_link_for(oid)
         self.reply(200, resp)
 
     # ---- умный помощник для сайта и мини-апки: подбор букетов (ключ Claude живёт только здесь)
@@ -1717,6 +1799,8 @@ def card_start(chat, m, rec):
     q("UPDATE cards SET client_chat=? WHERE token=?", (chat, c["token"]))
     q("UPDATE orders SET client_chat=COALESCE(client_chat, ?) WHERE id=?", (chat, c["order_id"]))
     q("INSERT OR REPLACE INTO waiting_card(chat_id,token) VALUES(?,?)", (chat, c["token"]))
+    if o.get("remind") and o.get("id") and not q("SELECT 1 FROM reminders WHERE order_id=?", (o["id"],), one=True):
+        add_reminder(o, chat)
     send(chat, esc(card_tx(o, "ask")))
 
 
