@@ -26,7 +26,7 @@ function checkoutView(){
   +'<section class="blk"><span class="label">'+t('co_wrap')+'</span><div class="fields"><label>'+t('co_paper')+'<select id="f_paper">'+t('papers').map((x,i)=>'<option value="'+i+'"'+(+dv('f_paper',0)===i?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
   +'<label>'+t('co_ribbon')+'<select id="f_ribbon">'+t('ribbons').map((x,i)=>'<option value="'+i+'"'+(+dv('f_ribbon',0)===i?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
   +'<label class="full">'+t('co_com')+'<textarea id="f_com" placeholder="'+esc(t('co_com_ph'))+'">'+esc(dv('f_com',''))+'</textarea></label></div></section>'
-  +(K?'':'<section class="blk"><span class="label">'+t('co_card')+'</span><div class="opts"><label><input type="radio" name="card" value="none"'+(card==='none'?' checked':'')+'>'+t('card_none')+'</label><label><input type="radio" name="card" value="text"'+(card==='text'?' checked':'')+'>'+t('card_text')+'</label></div>'
+  +(K?'':'<section class="blk"><span class="label">'+t('co_card')+'</span><div class="opts"><label><input type="radio" name="card" value="none"'+(card==='none'?' checked':'')+'>'+t('card_none')+'</label><label><input type="radio" name="card" value="text"'+(card==='text'?' checked':'')+'>'+t('card_text')+'</label><label><input type="radio" name="card" value="media"'+(card==='media'?' checked':'')+'>'+t('card_media')+'</label></div>'+(card==='media'?'<p class="note" style="margin-top:8px">'+t('card_media_d')+'</p>':'')
   +(card==='text'?'<div class="fields" style="margin-top:16px"><label class="full">'+t('co_card_text')+'<textarea id="f_text">'+esc(dv('f_text',''))+'</textarea></label>'
   +'<label>'+t('co_ai')+'<select id="f_tone">'+['ai_warm','ai_fun','ai_form'].map((k,i)=>'<option value="'+k+'"'+(dv('f_tone','ai_warm')===k?' selected':'')+'>'+t(['tone_warm','tone_fun','tone_form'][i])+'</option>').join('')+'</select></label>'
   +'<div style="align-self:end"><button type="button" class="btn" data-act="ai">'+t('co_ai')+'</button></div></div>':'')
@@ -46,12 +46,13 @@ function place(){
     date:K?ymd(new Date()):d.f_date,win:K?'asap':(d.f_win||'asap'),exact:K?'':(d.f_exact||''),rec:K?t('kind_rec'):d.f_rec.trim(),phone:K?d.f_yphone.trim():d.f_phone.trim(),addr:K?t('kind_addr'):d.f_addr.trim(),
     occ:K?'thanks':(d.f_occ||'bd'),card:K?'text':(d.card||'none'),text:K?t('sign_card').replace('{n}',sign):(d.card==='text'?(d.f_text||''):''),anon:K?false:!!d.f_anon,you:d.f_you.trim(),yphone:d.f_yphone.trim(),pay:d.pay||PAYS[0],remind:K?false:d.f_rem!==false,status:0,ts:Date.now(),paper:+(d.f_paper||0),ribbon:+(d.f_ribbon||0),com:(d.f_com||'').trim()};
   sendToBot(o);if(TG)S.me=null;
-  S.orders.unshift(o);save();S.last=o.id;S.cart=[];S.draft={};S.kind=false;S.view='done';render();window.scrollTo(0,0)}
+  S.recLink=null;S.orders.unshift(o);save();S.last=o.id;S.cart=[];S.draft={};S.kind=false;S.view='done';render();window.scrollTo(0,0)}
 function doneView(){const o=S.orders.find(x=>x.id===S.last);if(!o)return '';
   return '<div class="done"><span class="label nums">'+esc(o.id)+'</span><h2>'+t('ok_t')+'</h2><p>'+t('ok_d')+'</p><div class="acts">'
   +'<button class="btn primary" data-act="cabinet">'+t('ok_cab')+'</button>'
   +(o.remind?'<a class="btn" target="_blank" rel="noopener" href="'+calLink(o)+'">'+t('ok_cal')+'</a>':'')
-  +'<button class="btn" data-act="studio">'+t('nav_studio')+'</button></div></div>'}
+  +'<button class="btn" data-act="studio">'+t('nav_studio')+'</button></div>'
+  +(o.card==='media'?'<div class="blk" style="margin-top:32px"><span class="label">'+t('card_media')+'</span>'+(TG?'<p>'+t('ok_rec_tg')+'</p>':(S.recLink?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(S.recLink)+'">'+t('ok_rec')+'</a>':'<p class="note">'+t('card_media_d')+'</p>'))+'</div>':'')+'</div>'}
 function itemsText(o){return o.items.map(i=>{const p=PRODUCTS.find(x=>x.id===i.id);return pn(p)+' × '+i.q}).join(', ')}
 function whenText(o){return fdate(o.date)+', '+(o.win==='asap'?t('win_asap'):o.win==='exact'?o.exact:o.win)}
 function h2(s){return '<h2 style="font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;margin-bottom:32px">'+s+'</h2>'}
@@ -69,7 +70,7 @@ function studioView(){
   const o=S.orders.find(x=>x.id===S.last)||S.orders[0];
   const head=h2(t('bot_t'))+'<p class="lead">'+t('bot_hint')+'</p>';
   if(!o)return head+emptyBox(t('bot_none'),'shop',t('back'));
-  const m=t('msg_new')+' '+o.id+'\n\n'+t('m_it')+': '+itemsText(o)+'\n'+t('m_rec')+': '+o.rec+'\n'+t('m_ph')+': '+o.phone+'\n'+t('m_ad')+': '+o.addr+'\n'+t('m_wh')+': '+whenText(o)+'\n'+t('m_ca')+': '+(o.card==='text'?'«'+o.text+'»':t('nocard'))+(o.anon?' ('+t('anon')+')':'')+'\n'+t('m_wrap')+': '+t('papers')[o.paper||0]+', '+t('ribbons')[o.ribbon||0]+(o.com?'\n'+t('m_com')+': '+o.com:'')+'\n'+t('m_sum')+': '+usd(Math.round((o.total-DELIV)*0.7))+(o.kind?'\n'+t('m_kind'):'')+'\n\n'+T[S.lang].st[o.status];
+  const m=t('msg_new')+' '+o.id+'\n\n'+t('m_it')+': '+itemsText(o)+'\n'+t('m_rec')+': '+o.rec+'\n'+t('m_ph')+': '+o.phone+'\n'+t('m_ad')+': '+o.addr+'\n'+t('m_wh')+': '+whenText(o)+'\n'+t('m_ca')+': '+(o.card==='text'?'«'+o.text+'»':o.card==='media'?t('m_media'):t('nocard'))+(o.anon?' ('+t('anon')+')':'')+'\n'+t('m_wrap')+': '+t('papers')[o.paper||0]+', '+t('ribbons')[o.ribbon||0]+(o.com?'\n'+t('m_com')+': '+o.com:'')+'\n'+t('m_sum')+': '+usd(Math.round((o.total-DELIV)*0.7))+(o.kind?'\n'+t('m_kind'):'')+'\n\n'+T[S.lang].st[o.status];
   return head+'<div class="tg-win"><span class="label">May Flowers · Studio bot</span><div class="msg">'+esc(m)+'</div><div class="kb">'+BTN.map((b,i)=>'<button data-act="adv" data-v="'+o.id+'|'+i+'"'+(o.status===i?'':' disabled')+'>'+t(b)+'</button>').join('')+'</div></div><p class="note" style="margin-top:16px;max-width:480px">'+t('bot_rule')+'</p>'}
 function render(){
   const L=T[S.lang];document.documentElement.lang=S.lang;
@@ -145,10 +146,11 @@ function sendToBot(o){if(!ORDER_API.url)return;
   const goods=items.reduce((s,i)=>s+i.price_usd*i.qty,0);
   const body={id:o.id,items,total_usd:o.total,payout_usd:Math.round(goods*0.7),
     delivery:{date:o.date,window:o.win,exact_time:o.exact},recipient:o.kind?{name:'Случайный прохожий (букет в добрые руки)',phone:o.yphone,address:'Ереван, вручить незнакомцу на улице'}:{name:o.rec,phone:o.phone,address:o.addr},
-    sender:{name:o.you,phone:o.yphone,anonymous:o.anon},occasion:o.occ,card:{type:o.card,text:o.text},
+    sender:{name:o.you,phone:o.yphone,anonymous:o.anon},occasion:o.occ,card:{type:o.card,text:o.card==='media'?'🎙 Аудио/видео-открытка: QR-код бот пришлёт отдельно, распечатать и вложить':o.text},
     wrapping:{paper:R.papers[o.paper||0],ribbon:R.ribbons[o.ribbon||0]},kindness:!!o.kind,kind_hands:o.kind?{sign:o.sign,public:!!o.pub}:null,comment:com,payment:{method:o.pay,status:'demo'},lang:S.lang,remind:!!o.remind};
   fetch(ORDER_API.url.replace(/\/$/,'')+'/api/orders',{method:'POST',headers:TG?{'Content-Type':'application/json','X-Telegram-Init-Data':TG.initData}:{'Content-Type':'application/json','X-Intake-Key':ORDER_API.key},body:JSON.stringify(body)})
-    .then(r=>{if(!r.ok)throw r.status;if(TG)try{TG.HapticFeedback.notificationOccurred('success')}catch(e){}}).catch(()=>toast(t('send_fail')))}
+    .then(r=>{if(!r.ok)throw r.status;if(TG)try{TG.HapticFeedback.notificationOccurred('success')}catch(e){}return r.json().catch(()=>({}))})
+    .then(j=>{if(j&&j.record_link&&/^https:\/\/t\.me\//.test(j.record_link)){S.recLink=j.record_link;if(S.view==='done')render()}}).catch(()=>toast(t('send_fail')))}
 
 /* Telegram mini app: same page inside Telegram, with Telegram's own main and back buttons */
 function tgSync(){if(!TG)return;

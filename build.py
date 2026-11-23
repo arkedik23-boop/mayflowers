@@ -17,9 +17,24 @@ def build(demo=False):
     return (r("head.html") + r("styles.html") + "\n</head><body>\n" + r("body.html")
             + "\n<script>\n" + js + "\n</script>\n</body></html>\n")
 
+CARD_SKELETON = ('<!doctype html><html lang="ru"><head><meta charset="utf-8">'
+    '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+    '<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}'
+    'body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>')
+
+def build_card(demo=False):
+    """card.html: страница аудио/видео-открытки по QR-коду (card.html?c=ТОКЕН)."""
+    src = (SRC / "card.html").read_text(encoding="utf-8")
+    head, body = src.split("<!--body-->", 1)
+    if not demo:
+        assert "const API='';" in body
+        body = body.replace("const API='';", "const API='%s';" % ORDER_URL)
+    return CARD_SKELETON + head + "</head><body>" + body + "</body></html>\n"
+
 if __name__ == "__main__":
     if "--demo" in sys.argv:
         sys.stdout.write(build(demo=True))
     else:
         (ROOT / "index.html").write_text(build(), encoding="utf-8")
-        print("index.html собран")
+        (ROOT / "card.html").write_text(build_card(), encoding="utf-8")
+        print("index.html и card.html собраны")

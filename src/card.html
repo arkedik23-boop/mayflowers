@@ -1,0 +1,120 @@
+<title>Поздравление · MayFlowers</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400&family=Noto+Serif+Armenian:wght@400&family=Onest:wght@400;500;700;800&family=Noto+Sans+Armenian:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:oklch(0.975 0.006 140);--ink:oklch(0.2 0.02 150);--accent:oklch(0.56 0.2 5);--accent-fg:oklch(0.99 0 0);--muted:color-mix(in oklab,var(--ink) 62%,var(--bg));--line:color-mix(in oklab,var(--ink) 16%,var(--bg));--tint:color-mix(in oklab,var(--ink) 5%,var(--bg));--font:'Onest','Noto Sans Armenian',system-ui,sans-serif;--serif:'Bodoni Moda','Noto Serif Armenian','Didot','Bodoni 72',Georgia,serif;--r:2px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:oklch(0.18 0.015 150);--ink:oklch(0.95 0.01 140);--accent:oklch(0.72 0.17 5);--accent-fg:oklch(0.15 0.02 5);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:oklch(0.18 0.015 150);--ink:oklch(0.95 0.01 140);--accent:oklch(0.72 0.17 5);--accent-fg:oklch(0.15 0.02 5);color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:clip}
+.wrap{max-width:560px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));min-height:100svh;display:flex;flex-direction:column}
+.logo{font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--ink);text-decoration:none;display:inline-flex;align-items:baseline;gap:8px;align-self:flex-start}
+.logo em{font-family:var(--serif);font-style:normal;font-weight:400;font-size:1.14em}
+.logo small{font-size:13px;font-weight:500;color:var(--muted)}
+main{flex:1;display:flex;flex-direction:column;justify-content:center;padding-block:40px}
+.label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 16px}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(40px,11vw,64px);line-height:1.02;letter-spacing:-.025em;margin:0 0 32px;text-wrap:balance}
+h1 b{font-family:var(--font);font-weight:800;letter-spacing:-.045em;display:block}
+p{margin:0}
+.muted{color:var(--muted);text-wrap:pretty}
+.note{font-size:13px;color:var(--muted);text-wrap:pretty}
+.media{margin:0 0 32px}
+.circle{width:min(300px,78vw);aspect-ratio:1;border-radius:50%;overflow:hidden;background:var(--tint);margin:0 auto;display:block}
+.circle video,.tall video{width:100%;height:100%;object-fit:cover;display:block}
+.tall{width:min(320px,100%);aspect-ratio:9/16;border-radius:28px;overflow:hidden;background:var(--tint);margin:0 auto;isolation:isolate}
+.voice{display:flex;align-items:center;gap:16px;border:1px solid var(--line);border-radius:999px;padding:12px 24px 12px 12px}
+.play{width:56px;height:56px;flex:none;border-radius:50%;border:0;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;cursor:pointer}
+.play svg{width:22px;height:22px}
+.track{flex:1;min-width:0}
+.bar{height:4px;background:var(--line);border-radius:999px;overflow:hidden;margin-bottom:8px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s linear}
+.time{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.btn{border:1px solid var(--ink);background:none;color:var(--ink);font:700 15px/1 var(--font);padding:12px 24px;border-radius:var(--r);min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;cursor:pointer}
+.btn:hover{background:var(--tint)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible,.play:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.reply{border-top:1px solid var(--ink);padding-top:24px;margin-top:8px}
+.reply h2{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+.reply .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){.rec-dot{animation:none}.bar i{transition:none}}
+audio{width:100%;margin-top:16px}
+.foot{border-top:1px solid var(--line);padding-top:16px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+[hidden]{display:none!important}
+</style>
+<!--body-->
+<div class="wrap">
+  <a class="logo" id="home" href="./"><span><em>May</em>Flowers</span><small>by Mais</small></a>
+  <main id="app" aria-live="polite"><p class="muted" id="loading">…</p></main>
+  <footer class="foot"><span class="note" id="fNote"></span><a class="btn" id="fBtn" href="./"></a></footer>
+</div>
+<script>
+/* Audio/video greeting card opened from the QR code on a MayFlowers card: card.html?c=<token>.
+   Server (bot.py): GET /api/card/<token> -> {ok,status:'ready'|'pending',from,kind:'voice'|'video_note'|'video',lang}
+                    GET /api/card/<token>/media -> the recording (first fetch notifies the sender)
+                    POST /api/card/<token>/reply (body: recorded audio) -> {ok}
+   Preview without a server: ?demo=video_note | video | voice | pending | missing */
+const API='';
+const TX={
+ru:{k:'Поздравление для вас',h1a:'Вам цветы',h1b:'и пара слов',from:'от {n}',play:'Слушать',pause:'Пауза',pend_h:'Поздравление уже в пути',pend_d:'Отправитель ещё записывает его. Загляните чуть позже, ссылка останется той же.',retry:'Проверить снова',miss_h:'Открытка не найдена',miss_d:'Проверьте, что код отсканирован целиком, или напишите нам.',err:'Не получилось загрузить. Проверьте интернет и попробуйте снова.',rep_h:'Ответить голосом',rep_d:'Скажите спасибо, отправитель получит ваш ответ в Telegram.',rec:'Записать',stop:'Остановить',again:'Перезаписать',send:'Отправить',sending:'Отправляю…',sent:'Ответ отправлен 🤍',mic:'Нет доступа к микрофону. Разрешите его в настройках браузера.',norec:'Этот браузер не умеет записывать звук.',f_note:'Хотите тоже кого-то порадовать?',f_btn:'Подарить цветы',recording:'Идёт запись'},
+en:{k:'A greeting for you',h1a:'Flowers for you',h1b:'and a few words',from:'from {n}',play:'Play',pause:'Pause',pend_h:'Your greeting is on its way',pend_d:'The sender is still recording it. Check back a little later, the link stays the same.',retry:'Check again',miss_h:'Card not found',miss_d:'Make sure the whole code was scanned, or message us.',err:'Could not load. Check your connection and try again.',rep_h:'Reply with your voice',rep_d:'Say thank you, the sender gets your reply in Telegram.',rec:'Record',stop:'Stop',again:'Record again',send:'Send',sending:'Sending…',sent:'Reply sent 🤍',mic:'No microphone access. Allow it in your browser settings.',norec:'This browser cannot record audio.',f_note:'Want to make someone happy too?',f_btn:'Send flowers',recording:'Recording'},
+hy:{k:'Շնորհավորանք ձեզ համար',h1a:'Ծաղիկներ ձեզ',h1b:'և մի քանի բառ',from:'{n}-ից',play:'Լսել',pause:'Դադար',pend_h:'Շնորհավորանքը ճանապարհին է',pend_d:'Ուղարկողը դեռ ձայնագրում է այն: Նայեք մի փոքր ուշ, հղումը նույնն է մնալու:',retry:'Ստուգել կրկին',miss_h:'Բացիկը չի գտնվել',miss_d:'Համոզվեք, որ կոդն ամբողջությամբ է սկանավորվել, կամ գրեք մեզ:',err:'Չհաջողվեց բեռնել: Ստուգեք ինտերնետը և փորձեք կրկին:',rep_h:'Պատասխանել ձայնով',rep_d:'Ասեք շնորհակալություն, ուղարկողը պատասխանը կստանա Telegram-ում:',rec:'Ձայնագրել',stop:'Կանգնեցնել',again:'Կրկին ձայնագրել',send:'Ուղարկել',sending:'Ուղարկում եմ…',sent:'Պատասխանն ուղարկված է 🤍',mic:'Միկրոֆոնի հասանելիություն չկա: Թույլատրեք այն դիտարկիչի կարգավորումներում:',norec:'Այս դիտարկիչը չի կարող ձայնագրել:',f_note:'Ուզո՞ւմ եք էլ ինչ-որ մեկին ուրախացնել:',f_btn:'Նվիրել ծաղիկներ',recording:'Ձայնագրում'}};
+const Q=new URLSearchParams(location.search),TOKEN=(Q.get('c')||'').replace(/[^A-Za-z0-9_-]/g,''),DEMO=Q.get('demo')||(!API?'video_note':'');
+let L=(navigator.language||'ru').slice(0,2);if(!TX[L])L='ru';
+const t=k=>TX[L][k];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const app=$('#app');
+const PLAY='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>',PAUSE='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>';
+function foot(){document.documentElement.lang=L;$('#fNote').textContent=t('f_note');$('#fBtn').textContent=t('f_btn')}
+function api(p,o){return fetch(API.replace(/\/$/,'')+'/api/card/'+encodeURIComponent(TOKEN)+(p||''),o)}
+
+async function load(){foot();
+  if(DEMO){const kinds={video_note:'video_note',video:'video',voice:'voice'};
+    if(DEMO==='pending')return pending();if(DEMO==='missing')return missing();
+    return ready({from:'Анна',kind:kinds[DEMO]||'video_note'},'vid/mais.mp4')}
+  if(!TOKEN)return missing();
+  try{const r=await api();if(r.status===404)return missing();if(!r.ok)throw 0;const d=await r.json();
+    if(d.lang&&TX[d.lang])L=d.lang;foot();
+    if(d.status!=='ready')return pending();ready(d,API.replace(/\/$/,'')+'/api/card/'+encodeURIComponent(TOKEN)+'/media')}
+  catch(e){app.innerHTML='<p class="label">'+t('k')+'</p><p class="muted" style="margin-bottom:16px">'+t('err')+'</p><div><button class="btn" id="retry">'+t('retry')+'</button></div>';$('#retry').onclick=load}}
+
+function pending(){app.innerHTML='<p class="label">'+t('k')+'</p><h1>'+t('pend_h')+'</h1><p class="muted" style="margin-bottom:24px">'+t('pend_d')+'</p><div><button class="btn" id="retry">'+t('retry')+'</button></div>';$('#retry').onclick=load}
+function missing(){app.innerHTML='<p class="label">'+t('k')+'</p><h1>'+t('miss_h')+'</h1><p class="muted">'+t('miss_d')+'</p>'}
+
+function ready(d,src){
+  const from=d.from?t('from').replace('{n}',esc(d.from)):'';
+  let media;
+  if(d.kind==='voice')media='<div class="voice"><button class="play" id="pb" aria-label="'+t('play')+'">'+PLAY+'</button><div class="track"><div class="bar"><i id="pbar"></i></div><span class="time" id="ptime">0:00</span></div><audio id="m" preload="metadata" src="'+esc(src)+'"></audio></div>';
+  else media='<div class="'+(d.kind==='video_note'?'circle':'tall')+'"><video id="m" src="'+esc(src)+'" playsinline controls preload="metadata"></video></div>';
+  app.innerHTML='<p class="label">'+t('k')+'</p><h1>'+t('h1a')+' <b>'+(from||t('h1b'))+'</b></h1><div class="media">'+media+'</div>'+replyBox();
+  const m=$('#m');
+  if(d.kind==='voice'){const pb=$('#pb'),fmt=s=>isFinite(s)?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00';
+    pb.onclick=()=>{m.paused?m.play().catch(()=>{}):m.pause()};
+    m.onplay=()=>{pb.innerHTML=PAUSE;pb.setAttribute('aria-label',t('pause'))};
+    m.onpause=m.onended=()=>{pb.innerHTML=PLAY;pb.setAttribute('aria-label',t('play'))};
+    m.ontimeupdate=m.onloadedmetadata=()=>{$('#pbar').style.width=(m.duration?m.currentTime/m.duration*100:0)+'%';$('#ptime').textContent=fmt(m.currentTime)+' / '+fmt(m.duration)}}
+  wireReply()}
+
+/* voice reply recorded in the browser and sent to the sender through the bot */
+let REC=null,CHUNKS=[],BLOB=null,STREAM=null;
+function replyBox(){const ok=!!(window.MediaRecorder&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+  return '<section class="reply"><h2>'+t('rep_h')+'</h2><p class="muted">'+t('rep_d')+'</p><div id="rp">'+(ok?'<div class="row"><button class="btn primary" id="rec">'+t('rec')+'</button></div>':'<p class="note" style="margin-top:16px">'+t('norec')+'</p>')+'</div></section>'}
+function wireReply(){const b=$('#rec');if(b)b.onclick=startRec}
+async function startRec(){const rp=$('#rp');
+  try{STREAM=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){rp.insertAdjacentHTML('beforeend','<p class="note" style="margin-top:8px">'+t('mic')+'</p>');return}
+  CHUNKS=[];REC=new MediaRecorder(STREAM);REC.ondataavailable=e=>{if(e.data.size)CHUNKS.push(e.data)};
+  REC.onstop=()=>{STREAM.getTracks().forEach(x=>x.stop());BLOB=new Blob(CHUNKS,{type:REC.mimeType||'audio/webm'});
+    rp.innerHTML='<audio controls src="'+URL.createObjectURL(BLOB)+'"></audio><div class="row"><button class="btn primary" id="send">'+t('send')+'</button><button class="btn" id="again">'+t('again')+'</button></div>';
+    $('#again').onclick=startRec;$('#send').onclick=sendRec};
+  REC.start();rp.innerHTML='<div class="row" style="align-items:center"><span class="rec-dot" aria-hidden="true"></span><span>'+t('recording')+'</span><button class="btn" id="stop">'+t('stop')+'</button></div>';
+  $('#stop').onclick=()=>REC.stop();setTimeout(()=>{if(REC&&REC.state==='recording')REC.stop()},120000)}
+async function sendRec(){const s=$('#send');s.disabled=true;s.textContent=t('sending');
+  try{if(DEMO)await new Promise(r=>setTimeout(r,600));else{const r=await api('/reply',{method:'POST',headers:{'Content-Type':BLOB.type},body:BLOB});if(!r.ok)throw 0}
+    $('#rp').innerHTML='<p style="margin-top:16px;font-weight:700">'+t('sent')+'</p>'}
+  catch(e){s.disabled=false;s.textContent=t('send');$('#rp').insertAdjacentHTML('beforeend','<p class="note" style="margin-top:8px">'+t('err')+'</p>')}}
+load();
+</script>
