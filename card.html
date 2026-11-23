@@ -62,7 +62,7 @@ const TX={
 ru:{k:'Поздравление для вас',h1a:'Вам цветы',h1b:'и пара слов',from:'от {n}',play:'Слушать',pause:'Пауза',pend_h:'Поздравление уже в пути',pend_d:'Отправитель ещё записывает его. Загляните чуть позже, ссылка останется той же.',retry:'Проверить снова',miss_h:'Открытка не найдена',miss_d:'Проверьте, что код отсканирован целиком, или напишите нам.',err:'Не получилось загрузить. Проверьте интернет и попробуйте снова.',rep_h:'Ответить голосом',rep_d:'Скажите спасибо, отправитель получит ваш ответ в Telegram.',rec:'Записать',stop:'Остановить',again:'Перезаписать',send:'Отправить',sending:'Отправляю…',sent:'Ответ отправлен 🤍',mic:'Нет доступа к микрофону. Разрешите его в настройках браузера.',norec:'Этот браузер не умеет записывать звук.',f_note:'Хотите тоже кого-то порадовать?',f_btn:'Подарить цветы',recording:'Идёт запись'},
 en:{k:'A greeting for you',h1a:'Flowers for you',h1b:'and a few words',from:'from {n}',play:'Play',pause:'Pause',pend_h:'Your greeting is on its way',pend_d:'The sender is still recording it. Check back a little later, the link stays the same.',retry:'Check again',miss_h:'Card not found',miss_d:'Make sure the whole code was scanned, or message us.',err:'Could not load. Check your connection and try again.',rep_h:'Reply with your voice',rep_d:'Say thank you, the sender gets your reply in Telegram.',rec:'Record',stop:'Stop',again:'Record again',send:'Send',sending:'Sending…',sent:'Reply sent 🤍',mic:'No microphone access. Allow it in your browser settings.',norec:'This browser cannot record audio.',f_note:'Want to make someone happy too?',f_btn:'Send flowers',recording:'Recording'},
 hy:{k:'Շնորհավորանք ձեզ համար',h1a:'Ծաղիկներ ձեզ',h1b:'և մի քանի բառ',from:'{n}-ից',play:'Լսել',pause:'Դադար',pend_h:'Շնորհավորանքը ճանապարհին է',pend_d:'Ուղարկողը դեռ ձայնագրում է այն: Նայեք մի փոքր ուշ, հղումը նույնն է մնալու:',retry:'Ստուգել կրկին',miss_h:'Բացիկը չի գտնվել',miss_d:'Համոզվեք, որ կոդն ամբողջությամբ է սկանավորվել, կամ գրեք մեզ:',err:'Չհաջողվեց բեռնել: Ստուգեք ինտերնետը և փորձեք կրկին:',rep_h:'Պատասխանել ձայնով',rep_d:'Ասեք շնորհակալություն, ուղարկողը պատասխանը կստանա Telegram-ում:',rec:'Ձայնագրել',stop:'Կանգնեցնել',again:'Կրկին ձայնագրել',send:'Ուղարկել',sending:'Ուղարկում եմ…',sent:'Պատասխանն ուղարկված է 🤍',mic:'Միկրոֆոնի հասանելիություն չկա: Թույլատրեք այն դիտարկիչի կարգավորումներում:',norec:'Այս դիտարկիչը չի կարող ձայնագրել:',f_note:'Ուզո՞ւմ եք էլ ինչ-որ մեկին ուրախացնել:',f_btn:'Նվիրել ծաղիկներ',recording:'Ձայնագրում'}};
-const Q=new URLSearchParams(location.search),TOKEN=(Q.get('c')||'').replace(/[^A-Za-z0-9_-]/g,''),DEMO=Q.get('demo')||(!API?'video_note':'');
+const Q=new URLSearchParams(location.search),ME=Q.get('me')==='1',TOKEN=(Q.get('c')||'').replace(/[^A-Za-z0-9_-]/g,''),DEMO=Q.get('demo')||(!API?'video_note':'');
 let L=(navigator.language||'ru').slice(0,2);if(!TX[L])L='ru';
 const t=k=>TX[L][k];
 const $=s=>document.querySelector(s);
@@ -79,7 +79,7 @@ async function load(){foot();
   if(!TOKEN)return missing();
   try{const r=await api();if(r.status===404)return missing();if(!r.ok)throw 0;const d=await r.json();
     if(d.lang&&TX[d.lang])L=d.lang;foot();
-    if(d.status!=='ready')return pending();ready(d,API.replace(/\/$/,'')+'/api/card/'+encodeURIComponent(TOKEN)+'/media')}
+    if(d.status!=='ready')return pending();ready(d,API.replace(/\/$/,'')+'/api/card/'+encodeURIComponent(TOKEN)+'/media'+(ME?'?preview=1':''))}
   catch(e){app.innerHTML='<p class="label">'+t('k')+'</p><p class="muted" style="margin-bottom:16px">'+t('err')+'</p><div><button class="btn" id="retry">'+t('retry')+'</button></div>';$('#retry').onclick=load}}
 
 function pending(){app.innerHTML='<p class="label">'+t('k')+'</p><h1>'+t('pend_h')+'</h1><p class="muted" style="margin-bottom:24px">'+t('pend_d')+'</p><div><button class="btn" id="retry">'+t('retry')+'</button></div>';$('#retry').onclick=load}
@@ -90,7 +90,7 @@ function ready(d,src){
   let media;
   if(d.kind==='voice')media='<div class="voice"><button class="play" id="pb" aria-label="'+t('play')+'">'+PLAY+'</button><div class="track"><div class="bar"><i id="pbar"></i></div><span class="time" id="ptime">0:00</span></div><audio id="m" preload="metadata" src="'+esc(src)+'"></audio></div>';
   else media='<div class="'+(d.kind==='video_note'?'circle':'tall')+'"><video id="m" src="'+esc(src)+'" playsinline controls preload="metadata"></video></div>';
-  app.innerHTML='<p class="label">'+t('k')+'</p><h1>'+t('h1a')+' <b>'+(from||t('h1b'))+'</b></h1><div class="media">'+media+'</div>'+replyBox();
+  app.innerHTML='<p class="label">'+t('k')+'</p><h1>'+t('h1a')+' <b>'+(from||t('h1b'))+'</b></h1><div class="media">'+media+'</div>'+(ME?'':replyBox());
   const m=$('#m');
   if(d.kind==='voice'){const pb=$('#pb'),fmt=s=>isFinite(s)?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00';
     pb.onclick=()=>{m.paused?m.play().catch(()=>{}):m.pause()};

@@ -20,7 +20,9 @@ import json
 import logging
 import os
 import secrets
+import shutil
 import sqlite3
+import subprocess
 import threading
 import time
 import urllib.error
@@ -46,6 +48,8 @@ TZ_OFFSET = float(os.environ.get("TZ_OFFSET", "4"))  # часовой пояс �
 REMIND_HOUR = int(os.environ.get("REMIND_HOUR", "11"))  # во сколько слать напоминания
 INIT_MAX_AGE = 86400  # подпись мини-апки действительна сутки
 MANAGER_CONTACT = os.environ.get("MANAGER_CONTACT", "")  # например @mayflowers_manager или +374 ...
+MEDIA_DIR = os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "cards")  # кеш записей для открыток
+CARD_REPLY_MAX = 6_000_000  # байт на голосовой ответ из браузера
 CATALOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "catalog.json")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -111,6 +115,8 @@ def kb(buttons):
     def btn(t, d):
         if d.startswith("webapp:"):
             return {"text": t, "web_app": {"url": d[7:]}}
+        if d.startswith("url:"):
+            return {"text": t, "url": d[4:]}
         return {"text": t, "callback_data": d}
     return {"inline_keyboard": [[btn(t, d) for t, d in row] for row in buttons]}
 
@@ -121,6 +127,38 @@ def notify_admins(text, photo=None, buttons=None):
             tg("sendPhoto", chat_id=a, photo=photo, caption=text[:1024], parse_mode="HTML", reply_markup=kb(buttons))
         else:
             send(a, text, buttons)
+
+
+def tg_upload(method, field, filename, data, content_type, **params):
+    """Вызов Bot API с загрузкой файла (multipart/form-data)."""
+    boundary = "----mf" + secrets.token_hex(12)
+    parts = []
+    for k, v in params.items():
+        if v is None:
+            continue
+        if isinstance(v, (dict, list)):
+            v = json.dumps(v, ensure_ascii=False)
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+    parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{field}"; filename="{filename}"\r\n'
+                 f'Content-Type: {content_type}\r\n\r\n'.encode() + data + b"\r\n")
+    parts.append(f"--{boundary}--\r\n".encode())
+    req = urllib.request.Request(f"{API_BASE}/bot{BOT_TOKEN}/{method}", data=b"".join(parts),
+                                 headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            body = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        try:
+            body = json.loads(e.read().decode())
+        except Exception:
+            body = {"ok": False, "description": str(e)}
+    except Exception as e:
+        log.warning("telegram %s upload failed: %s", method, e)
+        return None
+    if not body.get("ok"):
+        log.warning("telegram %s upload error: %s", method, body.get("description", ""))
+        return None
+    return body.get("result")
 
 
 # ---------------------------------------------------------------- база
@@ -153,6 +191,10 @@ def init_db():
             order_id TEXT, studio_id INTEGER, status TEXT, offered REAL, msg_id INTEGER,
             PRIMARY KEY(order_id, studio_id));
         CREATE TABLE IF NOT EXISTS waiting_photo(chat_id INTEGER PRIMARY KEY, order_id TEXT);
+        CREATE TABLE IF NOT EXISTS cards(
+            token TEXT PRIMARY KEY, order_id TEXT UNIQUE, rec_code TEXT UNIQUE, client_chat INTEGER,
+            kind TEXT, file_id TEXT, created REAL, recorded REAL, opened REAL, replies INTEGER DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS waiting_card(chat_id INTEGER PRIMARY KEY, token TEXT);
         CREATE TABLE IF NOT EXISTS reminders(
             id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id INTEGER, order_id TEXT, target TEXT,
             label TEXT, lang TEXT, sent7 INTEGER DEFAULT 0, sent1 INTEGER DEFAULT 0);
@@ -214,7 +256,10 @@ def order_text(o, full=False, status=None, studio_name=None):
     wrap = ", ".join(x for x in [w.get("paper"), w.get("ribbon")] if x)
     lines.append(f"🎀 Оформление: {esc(wrap or 'фирменное May Flowers')}")
     c = o.get("card") or {}
-    if c.get("text"):
+    if c.get("type") == "media":
+        lines.append("🎙 Открытка: аудио/видео-поздравление. QR-код пришлю после принятия заказа: "
+                     "распечатайте и вложите в букет")
+    elif c.get("text"):
         lines.append(f"💌 Открытка: «{esc(c['text'])}»")
     else:
         lines.append("💌 Открытка: без открытки")
@@ -223,7 +268,7 @@ def order_text(o, full=False, status=None, studio_name=None):
     if o.get("occasion"):
         lines.append(f"🎉 Повод: {esc(OCCASIONS.get(o['occasion'], o['occasion']))}")
     if o.get("kindness"):
-        lines.append("🤍 + Букет добра: мини-букет для вручения незнакомцу")
+        lines.append("🤍 <b>БУКЕТ В ДОБРЫЕ РУКИ</b>: подарить случайному прохожему на улице и снять видео вручения")
     if o.get("comment"):
         lines.append(f"📝 Комментарий: {esc(o['comment'])}")
     lines.append("")
@@ -454,6 +499,8 @@ def create_order(o, client_chat=None):
         notify_client(oid, "received")
         if o.get("remind"):
             add_reminder(o, client_chat)
+    if (o.get("card") or {}).get("type") == "media":
+        make_card(oid, o, client_chat)
     dispatch(oid)
     return oid
 
@@ -577,7 +624,16 @@ def handle_message(m):
         send(chat, f"Ваш Telegram ID: <code>{uid}</code>")
         return
 
+    # запись для аудио/видео-открытки
+    media = m.get("voice") or m.get("video_note") or m.get("video") or m.get("audio")
+    if media and not studio_by_chat(chat):
+        if card_media_in(chat, m, media):
+            return
+
     if cmd == "/start":
+        if arg.startswith("rec_"):
+            card_start(chat, m, arg[4:])
+            return
         if arg:
             inv = q("SELECT * FROM invites WHERE code=? AND used=0", (arg,), one=True)
             if not inv:
@@ -644,9 +700,9 @@ def handle_message(m):
 # ---------------------------------------------------------------- меню и каталог для клиентов
 
 MENU = {
-    "ru": [["💐 Каталог", "📦 Мои заказы"], ["🤍 Букет добра", "📞 Связаться"], ["ℹ️ Как это работает"]],
-    "en": [["💐 Catalog", "📦 My orders"], ["🤍 Kindness bouquet", "📞 Contact us"], ["ℹ️ How it works"]],
-    "hy": [["💐 Կատալոգ", "📦 Իմ պատվերները"], ["🤍 Բարության ծաղկեփունջ", "📞 Կապ"], ["ℹ️ Ինչպես է աշխատում"]],
+    "ru": [["💐 Каталог", "📦 Мои заказы"], ["🤍 В добрые руки", "📞 Связаться"], ["ℹ️ Как это работает"]],
+    "en": [["💐 Catalog", "📦 My orders"], ["🤍 Kind hands", "📞 Contact us"], ["ℹ️ How it works"]],
+    "hy": [["💐 Կատալոգ", "📦 Իմ պատվերները"], ["🤍 Բարի ձեռքեր", "📞 Կապ"], ["ℹ️ Ինչպես է աշխատում"]],
 }
 MENU_ACTIONS = ["catalog", "orders", "kind", "contact", "how"]
 CL = {
@@ -657,7 +713,7 @@ CL = {
                  "mom": "Маме", "sorry": "Извинение", "premium": "Премиум"},
         "order": "🛒 Заказать", "back": "↩️ Поводы", "empty": "Тут пока пусто.",
         "how": "Как это работает:\n\n1. Выберите букет в каталоге или в магазине.\n2. Укажите адрес, дату и время, текст открытки.\n3. Студия-партнёр соберёт букет, и я пришлю вам его фото до доставки.\n4. Курьер привезёт цветы по Еревану, от 60 минут.",
-        "kind": "🤍 Букет добра\n\nДобавьте к любому заказу мини-букет за $15. Маис или наша команда вручит его незнакомому человеку на улицах Еревана от вашего имени, а вы получите видео вручения.\n\nОтметить можно при оформлении заказа.",
+        "kind": "🤍 Букет в добрые руки\n\nВыберите любой букет, и мы подарим его случайному прохожему на улицах Еревана. В открытке будет ваше имя, а вам придёт видео вручения.\n\nПри оформлении заказа выберите «Кому: В добрые руки».",
         "contact": "Напишите вопрос прямо сюда, менеджер ответит в этом чате.",
         "contact_direct": "Или напрямую: {c}",
         "sent": "Передал менеджеру, ответим здесь же 🌸",
@@ -671,7 +727,7 @@ CL = {
                  "mom": "For mom", "sorry": "Sorry", "premium": "Premium"},
         "order": "🛒 Order", "back": "↩️ Occasions", "empty": "Nothing here yet.",
         "how": "How it works:\n\n1. Pick a bouquet in the catalog or the shop.\n2. Enter the address, date, time and card text.\n3. A partner studio builds the bouquet and I send you a photo before delivery.\n4. A courier delivers across Yerevan, from 60 minutes.",
-        "kind": "🤍 Kindness bouquet\n\nAdd a mini bouquet to any order for $15. Mais or our team hands it to a stranger on the streets of Yerevan on your behalf, and you get the video.\n\nTick it at checkout.",
+        "kind": "🤍 A bouquet into kind hands\n\nPick any bouquet and we will give it to a random passer-by on the streets of Yerevan. Your name goes on the card, and you get the video of the moment.\n\nAt checkout choose “For: Kind hands”.",
         "contact": "Write your question right here, a manager will reply in this chat.",
         "contact_direct": "Or directly: {c}",
         "sent": "Sent to a manager, we will reply here 🌸",
@@ -685,7 +741,7 @@ CL = {
                  "mom": "Մայրիկին", "sorry": "Ներողություն", "premium": "Պրեմիում"},
         "order": "🛒 Պատվիրել", "back": "↩️ Առիթներ", "empty": "Այստեղ դեռ դատարկ է։",
         "how": "Ինչպես է աշխատում՝\n\n1. Ընտրեք ծաղկեփունջ կատալոգում կամ խանութում։\n2. Նշեք հասցեն, ամսաթիվը, ժամը և բացիկի տեքստը։\n3. Գործընկեր ստուդիան կհավաքի ծաղկեփունջը, և ես կուղարկեմ լուսանկարը առաքումից առաջ։\n4. Առաքիչը կբերի Երևանով մեկ՝ 60 րոպեից։",
-        "kind": "🤍 Բարության ծաղկեփունջ\n\nԱվելացրեք ցանկացած պատվերին մինի ծաղկեփունջ $15-ով։ Մաիսը կամ մեր թիմը այն կհանձնի անծանոթ մարդու Երևանի փողոցներում ձեր անունից, իսկ դուք կստանաք տեսանյութը։\n\nՆշեք պատվիրելիս։",
+        "kind": "🤍 Ծաղկեփունջ բարի ձեռքերին\n\nԸնտրեք ցանկացած ծաղկեփունջ, և մենք այն կնվիրենք պատահական անցորդի Երևանի փողոցներում: Բացիկին կլինի ձեր անունը, իսկ դուք կստանաք հանձնման տեսանյութը:\n\nՊատվիրելիս ընտրեք «Ում՝ Բարի ձեռքերին»:",
         "contact": "Գրեք ձեր հարցն այստեղ, մենեջերը կպատասխանի այս չատում։",
         "contact_direct": "Կամ ուղղակի՝ {c}",
         "sent": "Փոխանցեցի մենեջերին, կպատասխանենք այստեղ 🌸",
@@ -1203,6 +1259,7 @@ def handle_callback(cb):
         edit(chat, off["msg_id"], order_text(o, full=True, status="accepted"), studio_buttons(order_id, "accepted"))
         notify_admins(f"✅ {esc(order_id)} принят · {esc(s['name'])}")
         notify_client(order_id, "accepted")
+        send_card_qr(chat, order_id)
         answer("Заказ ваш!")
         return
 
@@ -1291,6 +1348,8 @@ class Intake(BaseHTTPRequestHandler):
         path = self.path.split("?")[0]
         if path == "/health":
             self.reply(200, {"ok": True})
+        elif path.startswith("/api/card/"):
+            self.card_get(path[len("/api/card/"):])
         elif path == "/api/me":
             uid = self.tg_user()
             if uid is not None:
@@ -1319,6 +1378,10 @@ class Intake(BaseHTTPRequestHandler):
             self.reply(404, {"ok": False})
 
     def do_POST(self):
+        p = self.path.split("?")[0]
+        if p.startswith("/api/card/") and p.endswith("/reply"):
+            self.card_reply(p[len("/api/card/"):-len("/reply")])
+            return
         if self.path == "/api/reminders/delete":
             uid = self.tg_user()
             if uid is None:
@@ -1364,10 +1427,352 @@ class Intake(BaseHTTPRequestHandler):
             return
         o.pop("key", None)
         oid = create_order(o, client_chat)
-        self.reply(200, {"ok": True, "id": oid})
+        resp = {"ok": True, "id": oid}
+        c = q("SELECT rec_code FROM cards WHERE order_id=?", (oid,), one=True)
+        if c and not client_chat:
+            resp["record_link"] = f"https://t.me/{BOT_USERNAME}?start=rec_{c['rec_code']}"
+        self.reply(200, resp)
+
+    # ---- аудио/видео-открытка по QR: доступ даёт только длинный случайный токен
+    def card_get(self, rest):
+        token, _, sub = rest.partition("/")
+        c = card_by_token(urllib.parse.unquote(token))
+        if not c:
+            self.reply(404, {"ok": False})
+            return
+        _, o = get_order(c["order_id"])
+        o = o or {}
+        if sub == "":
+            snd = o.get("sender") or {}
+            self.reply(200, {"ok": True, "status": "ready" if c["file_id"] else "pending",
+                             "from": "" if snd.get("anonymous") else (snd.get("name") or ""),
+                             "kind": c["kind"] or "", "lang": lang_of(o)})
+            return
+        if sub != "media" or not c["file_id"]:
+            self.reply(404, {"ok": False})
+            return
+        path, ctype = card_media_file(c)
+        if not path:
+            self.reply(502, {"ok": False, "error": "Telegram не отдал запись"})
+            return
+        preview = "preview=1" in (self.path.split("?", 1)[1] if "?" in self.path else "")
+        if not c["opened"] and not preview:
+            q("UPDATE cards SET opened=? WHERE token=?", (time.time(), c["token"]))
+            if c["client_chat"]:
+                send(c["client_chat"], esc(card_tx(o, "opened")))
+            notify_admins(f"💌 {esc(c['order_id'])}: получатель открыл аудио/видео-открытку")
+        size = os.path.getsize(path)
+        start, end = 0, size - 1
+        rng = self.headers.get("Range") or ""
+        partial = rng.startswith("bytes=")
+        if partial:
+            a, _, b = rng[6:].split(",")[0].partition("-")
+            try:
+                if a:
+                    start, end = int(a), (int(b) if b else size - 1)
+                else:
+                    start, end = max(0, size - int(b)), size - 1
+            except ValueError:
+                partial = False
+                start, end = 0, size - 1
+            end = min(end, size - 1)
+            if start > end:
+                self.send_response(416)
+                self.cors()
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.end_headers()
+                return
+        self.send_response(206 if partial else 200)
+        self.cors()
+        self.send_header("Content-Type", ctype)
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Cache-Control", "private, max-age=3600")
+        if partial:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.send_header("Content-Length", str(end - start + 1))
+        self.end_headers()
+        with open(path, "rb") as f:
+            f.seek(start)
+            left = end - start + 1
+            while left > 0:
+                chunk = f.read(min(65536, left))
+                if not chunk:
+                    break
+                try:
+                    self.wfile.write(chunk)
+                except (BrokenPipeError, ConnectionResetError):
+                    return
+                left -= len(chunk)
+
+    def card_reply(self, token):
+        c = card_by_token(urllib.parse.unquote(token))
+        if not c:
+            self.reply(404, {"ok": False})
+            return
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0 or length > CARD_REPLY_MAX:
+            self.reply(413, {"ok": False, "error": "пустая или слишком длинная запись"})
+            return
+        ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
+        if not reply_allowed(ip) or (c["replies"] or 0) >= 5:
+            self.reply(429, {"ok": False, "error": "слишком много ответов"})
+            return
+        data = self.rfile.read(length)
+        ctype = (self.headers.get("Content-Type") or "audio/webm").split(";")[0]
+        if not ctype.startswith(("audio/", "video/")):
+            self.reply(415, {"ok": False, "error": "нужна аудиозапись"})
+            return
+        if not deliver_card_reply(c, data, ctype):
+            self.reply(502, {"ok": False, "error": "не удалось передать ответ"})
+            return
+        q("UPDATE cards SET replies=COALESCE(replies,0)+1 WHERE token=?", (c["token"],))
+        self.reply(200, {"ok": True})
 
     def log_message(self, fmt, *args):
         log.info("http %s", fmt % args)
+
+
+# ---------------------------------------------------------------- аудио/видео-открытка по QR
+
+CARD_TX = {
+    "ru": {"ask": "🎙 Запишите поздравление для открытки к заказу {id}: голосовое, кружок или видео, прямо сюда в чат. "
+                  "На открытке будет QR-код, получатель наведёт камеру и услышит вас.",
+           "saved": "Сохранил ✅ Получатель увидит это поздравление по QR-коду на открытке.\n"
+                    "Хотите перезаписать — просто пришлите новое до доставки.",
+           "late": "Букет уже доставлен, поздравление менять нельзя.",
+           "busy": "Эта ссылка уже привязана к другому аккаунту Telegram.",
+           "bad": "Ссылка для записи не найдена. Напишите нам, поможем.",
+           "big": "Видео слишком большое (больше 20 МБ). Запишите покороче или кружком.",
+           "listen": "▶️ Как это увидит получатель",
+           "opened": "💌 Получатель открыл ваше поздравление 🤍",
+           "reply": "💌 Ответ на ваше поздравление (заказ {id})"},
+    "en": {"ask": "🎙 Record a greeting for the card in order {id}: a voice message, a video note or a video, right here. "
+                  "The card gets a QR code, the recipient points the camera and hears you.",
+           "saved": "Saved ✅ The recipient will open this greeting from the QR code on the card.\n"
+                    "Want to redo it? Just send a new one before delivery.",
+           "late": "The bouquet is already delivered, the greeting can no longer be changed.",
+           "busy": "This link is already tied to another Telegram account.",
+           "bad": "Recording link not found. Message us and we will help.",
+           "big": "The video is too large (over 20 MB). Record a shorter one or a video note.",
+           "listen": "▶️ See it as the recipient",
+           "opened": "💌 The recipient opened your greeting 🤍",
+           "reply": "💌 A reply to your greeting (order {id})"},
+    "hy": {"ask": "🎙 Ձայնագրեք շնորհավորանք {id} պատվերի բացիկի համար՝ ձայնային, շրջանակ կամ տեսանյութ, հենց այստեղ: "
+                  "Բացիկին կլինի QR կոդ, ստացողը կուղղի տեսախցիկը և կլսի ձեզ:",
+           "saved": "Պահպանված է ✅ Ստացողը կտեսնի շնորհավորանքը բացիկի QR կոդով:\n"
+                    "Ուզում եք նորից ձայնագրել, պարզապես ուղարկեք նորը մինչև առաքումը:",
+           "late": "Ծաղկեփունջն արդեն առաքված է, շնորհավորանքը փոխել հնարավոր չէ:",
+           "busy": "Այս հղումն արդեն կապված է այլ Telegram հաշվի հետ:",
+           "bad": "Ձայնագրման հղումը չի գտնվել: Գրեք մեզ, կօգնենք:",
+           "big": "Տեսանյութը չափազանց մեծ է (20 ՄԲ-ից ավելի): Ձայնագրեք ավելի կարճ կամ շրջանակով:",
+           "listen": "▶️ Ինչպես կտեսնի ստացողը",
+           "opened": "💌 Ստացողը բացեց ձեր շնորհավորանքը 🤍",
+           "reply": "💌 Պատասխան ձեր շնորհավորանքին ({id} պատվեր)"},
+}
+REPLY_HITS = {}
+
+
+def card_tx(o, key):
+    return CARD_TX[lang_of(o)][key].format(id=o.get("id", ""))
+
+
+def card_url(token):
+    base = (WEBAPP_URL or "").split("?")[0].rstrip("/")
+    return f"{base}/card.html?c={token}"
+
+
+def card_by_token(token):
+    if not token or len(token) > 64:
+        return None
+    return q("SELECT * FROM cards WHERE token=?", (token,), one=True)
+
+
+def make_card(order_id, o, client_chat):
+    token, rec = secrets.token_urlsafe(16), secrets.token_urlsafe(9)
+    q("INSERT OR IGNORE INTO cards(token,order_id,rec_code,client_chat,created) VALUES(?,?,?,?,?)",
+      (token, order_id, rec, client_chat, time.time()))
+    if client_chat:
+        q("INSERT OR REPLACE INTO waiting_card(chat_id,token) VALUES(?,?)", (client_chat, token))
+        send(client_chat, esc(card_tx(o, "ask")))
+    notify_admins(f"🎙 {esc(order_id)}: заказ с аудио/видео-открыткой\n{esc(card_url(token))}")
+
+
+def card_start(chat, m, rec):
+    c = q("SELECT * FROM cards WHERE rec_code=?", (rec,), one=True)
+    lg = user_lang(m.get("from") or {})
+    if not c:
+        send(chat, esc(CARD_TX.get(lg, CARD_TX["ru"])["bad"]))
+        return
+    _, o = get_order(c["order_id"])
+    o = o or {"lang": lg}
+    if c["client_chat"] and c["client_chat"] != chat:
+        send(chat, esc(card_tx(o, "busy")))
+        return
+    q("UPDATE cards SET client_chat=? WHERE token=?", (chat, c["token"]))
+    q("UPDATE orders SET client_chat=COALESCE(client_chat, ?) WHERE id=?", (chat, c["order_id"]))
+    q("INSERT OR REPLACE INTO waiting_card(chat_id,token) VALUES(?,?)", (chat, c["token"]))
+    send(chat, esc(card_tx(o, "ask")))
+
+
+def card_media_in(chat, m, media):
+    """Голосовое, кружок или видео от клиента, который записывает открытку. True, если обработали."""
+    w = q("SELECT * FROM waiting_card WHERE chat_id=?", (chat,), one=True)
+    if not w:
+        return False
+    c = card_by_token(w["token"])
+    if not c:
+        return False
+    row, o = get_order(c["order_id"])
+    o = o or {}
+    if row and row["status"] in ("delivered", "cancelled"):
+        q("DELETE FROM waiting_card WHERE chat_id=?", (chat,))
+        send(chat, esc(card_tx(o, "late")))
+        return True
+    if (media.get("file_size") or 0) > 20_000_000:
+        send(chat, esc(card_tx(o, "big")))
+        return True
+    kind = "voice" if (m.get("voice") or m.get("audio")) else ("video_note" if m.get("video_note") else "video")
+    q("UPDATE cards SET file_id=?, kind=?, recorded=? WHERE token=?",
+      (media["file_id"], kind, time.time(), c["token"]))
+    send(chat, esc(card_tx(o, "saved")), [[(card_tx(o, "listen"), "url:" + card_url(c["token"]) + "&me=1")]])
+    notify_admins(f"🎙 {esc(c['order_id'])}: клиент записал поздравление ({kind})")
+    return True
+
+
+def qr_png(text):
+    try:
+        import io
+        import qrcode
+        img = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=12, border=4)
+        img.add_data(text)
+        img.make(fit=True)
+        buf = io.BytesIO()
+        img.make_image(fill_color="black", back_color="white").save(buf, format="PNG")
+        return buf.getvalue()
+    except Exception as e:
+        log.warning("QR не сгенерирован: %s", e)
+        return None
+
+
+def send_card_qr(chat, order_id):
+    c = q("SELECT * FROM cards WHERE order_id=?", (order_id,), one=True)
+    if not c:
+        return
+    url = card_url(c["token"])
+    caption = (f"🎙 QR-код для открытки к заказу {order_id}.\n"
+               "Распечатайте (примерно 3×3 см) и вложите в букет вместе с открыткой. "
+               "Подпись рядом: «Наведите камеру — здесь поздравление для вас».")
+    png = qr_png(url)
+    if png and tg_upload("sendPhoto", "photo", f"qr-{order_id}.png", png, "image/png",
+                         chat_id=chat, caption=caption):
+        if png:
+            tg_upload("sendDocument", "document", f"qr-{order_id}.png", png, "image/png",
+                      chat_id=chat, caption="Файл для печати без сжатия")
+        return
+    send(chat, esc(caption) + f"\n\nСсылка для QR-кода: {esc(url)}")
+
+
+def _download_tg(file_id):
+    f = tg("getFile", file_id=file_id)
+    if not f or not f.get("file_path"):
+        return None
+    try:
+        with urllib.request.urlopen(f"{API_BASE}/file/bot{BOT_TOKEN}/{f['file_path']}", timeout=60) as r:
+            return r.read()
+    except Exception as e:
+        log.warning("file download failed: %s", e)
+        return None
+
+
+def _ffmpeg(args, data, timeout=120):
+    if not shutil.which("ffmpeg"):
+        return None
+    try:
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", "pipe:0", *args, "pipe:1"],
+                           input=data, capture_output=True, timeout=timeout)
+        return r.stdout if r.returncode == 0 and r.stdout else None
+    except Exception as e:
+        log.warning("ffmpeg failed: %s", e)
+        return None
+
+
+def _ffmpeg_file(args, data, suffix, timeout=120):
+    """ffmpeg во временный файл: нужен для +faststart, через pipe он не работает."""
+    if not shutil.which("ffmpeg"):
+        return None
+    import tempfile
+    fd, out = tempfile.mkstemp(suffix=suffix)
+    os.close(fd)
+    try:
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", "pipe:0", *args, out],
+                           input=data, capture_output=True, timeout=timeout)
+        if r.returncode == 0 and os.path.getsize(out) > 0:
+            with open(out, "rb") as f:
+                return f.read()
+    except Exception as e:
+        log.warning("ffmpeg failed: %s", e)
+    finally:
+        try:
+            os.remove(out)
+        except OSError:
+            pass
+    return None
+
+
+def card_media_file(c):
+    """Путь к записи на диске (скачивает из Telegram при первом запросе) и её Content-Type.
+    Голосовые Telegram (OGG/Opus) перекодируются в M4A, их играет и iPhone."""
+    os.makedirs(MEDIA_DIR, exist_ok=True)
+    tag = hashlib.sha1(c["file_id"].encode()).hexdigest()[:10]
+    voice = c["kind"] == "voice"
+    for ext, ctype in ((("m4a", "audio/mp4"), ("ogg", "audio/ogg")) if voice else (("mp4", "video/mp4"),)):
+        path = os.path.join(MEDIA_DIR, f"{c['token']}-{tag}.{ext}")
+        if os.path.exists(path):
+            return path, ctype
+    data = _download_tg(c["file_id"])
+    if not data:
+        return None, None
+    if voice:
+        m4a = _ffmpeg_file(["-vn", "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart"], data, ".m4a")
+        ext, ctype, out = ("m4a", "audio/mp4", m4a) if m4a else ("ogg", "audio/ogg", data)
+    else:
+        ext, ctype, out = "mp4", "video/mp4", data
+    path = os.path.join(MEDIA_DIR, f"{c['token']}-{tag}.{ext}")
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(out)
+    os.replace(tmp, path)
+    return path, ctype
+
+
+def reply_allowed(ip):
+    now = time.time()
+    hits = [t for t in REPLY_HITS.get(ip, []) if now - t < 600]
+    if len(hits) >= 5:
+        REPLY_HITS[ip] = hits
+        return False
+    hits.append(now)
+    REPLY_HITS[ip] = hits
+    return True
+
+
+def deliver_card_reply(c, data, ctype):
+    _, o = get_order(c["order_id"])
+    o = o or {}
+    caption = card_tx(o, "reply")
+    targets = [c["client_chat"]] if c["client_chat"] else ADMIN_IDS
+    ogg = _ffmpeg(["-vn", "-c:a", "libopus", "-b:a", "48k", "-f", "ogg"], data)
+    ok = False
+    for chat in targets:
+        if ogg:
+            r = tg_upload("sendVoice", "voice", "reply.ogg", ogg, "audio/ogg", chat_id=chat, caption=caption)
+        else:
+            ext = "mp4" if "mp4" in ctype else ("ogg" if "ogg" in ctype else "webm")
+            r = tg_upload("sendDocument", "document", f"reply.{ext}", data, ctype, chat_id=chat, caption=caption)
+        ok = ok or bool(r)
+    if c["client_chat"]:
+        notify_admins(f"💌 {esc(c['order_id'])}: получатель ответил голосом на открытку")
+    return ok
 
 
 def cabinet(uid):

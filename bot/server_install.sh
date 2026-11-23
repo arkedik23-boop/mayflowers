@@ -9,6 +9,16 @@ sed -i 's/\r$//' .env server_install.sh mayflowers-bot.service 2>/dev/null || tr
 set -a; . ./.env; set +a
 PORT="${PORT:-8090}"
 
+echo "== Библиотеки для аудио/видео-открыток (QR-код, перекодирование голосовых)"
+NEED=""
+python3 -c "import qrcode, PIL" 2>/dev/null || NEED="$NEED python3-qrcode python3-pil"
+command -v ffmpeg >/dev/null 2>&1 || NEED="$NEED ffmpeg"
+if [ -n "$NEED" ]; then
+  apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $NEED >/dev/null && echo "   установлено:$NEED"
+else
+  echo "   уже есть"
+fi
+
 echo "== Пользователь и папки"
 id -u bot >/dev/null 2>&1 || useradd --system --home "$APP" --shell /usr/sbin/nologin bot
 mkdir -p "$APP/data"
