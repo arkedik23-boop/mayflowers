@@ -1,4 +1,6 @@
 let MENU_OPEN=false;
+/* demo controls (studio bot preview, site/mini-app switch): only in the mock-up or with ?demo=1, never on the live shop */
+const DEMO_UI=!ORDER_API.url||/[?&]demo=1\b/.test(location.search);
 const FIELDS=['f_sign','f_paper','f_ribbon','f_com','f_rec','f_phone','f_addr','f_date','f_win','f_exact','f_occ','f_text','f_tone','f_you','f_yphone'];
 function grab(){if(!$('#f_you'))return;FIELDS.forEach(k=>{const e=$('#'+k);if(e)S.draft[k]=e.value});
   ['f_anon','f_rem','f_pub'].forEach(k=>{const e=$('#'+k);if(e)S.draft[k]=e.checked});
@@ -52,7 +54,7 @@ function doneView(){const o=S.orders.find(x=>x.id===S.last);if(!o)return '';
   return '<div class="done"><span class="label nums">'+esc(o.id)+'</span><h2>'+t('ok_t')+'</h2><p>'+t('ok_d')+'</p><div class="acts">'
   +'<button class="btn primary" data-act="cabinet">'+t('ok_cab')+'</button>'
   +(o.remind?'<a class="btn" target="_blank" rel="noopener" href="'+calLink(o)+'">'+t('ok_cal')+'</a>':'')
-  +'<button class="btn" data-act="studio">'+t('nav_studio')+'</button></div>'
+  +(DEMO_UI?'<button class="btn" data-act="studio">'+t('nav_studio')+'</button>':'')+'</div>'
   +(o.card==='media'?'<div class="blk" style="margin-top:32px"><span class="label">'+t('card_media')+'</span>'+(TG?'<p>'+t('ok_rec_tg')+'</p>':(S.recLink?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(S.recLink)+'">'+t('ok_rec')+'</a>':'<p class="note">'+t('card_media_d')+'</p>'))+'</div>':'')+'</div>'}
 function itemsText(o){return o.items.map(i=>{const p=PRODUCTS.find(x=>x.id===i.id);return pn(p)+' × '+i.q}).join(', ')}
 function whenText(o){return fdate(o.date)+', '+(o.win==='asap'?t('win_asap'):o.win==='exact'?o.exact:o.win)}
@@ -235,7 +237,7 @@ function menuInner(){const L=T[S.lang];
   +'<ul class="menu-list">'+items.map(([k,l])=>'<li><button type="button" data-nav="'+k+'">'+L[l]+'</button></li>').join('')
   +'<li><button type="button" data-act="mgr">'+L.mn_contact+'</button></li></ul>'
   +'<div class="menu-sub"><span class="label">'+L.mn_lang+'</span><div class="tabs" role="group" aria-label="'+L.mn_lang+'">'+[['ru','RU'],['en','EN'],['hy','HY']].map(([c,n])=>'<button class="tab" type="button" data-lang="'+c+'" aria-pressed="'+(S.lang===c)+'">'+n+'</button>').join('')+'</div></div>'
-  +(TG?'':'<div class="menu-sub"><span class="label">'+L.mn_demo+'</span><div class="tabs"><button class="tab" type="button" data-view="studio" aria-pressed="'+(S.view==='studio')+'">'+L.nav_studio+'</button><button class="tab" type="button" data-mode="site" aria-pressed="'+(S.mode==='site')+'">'+L.m_site+'</button><button class="tab" type="button" data-mode="tg" aria-pressed="'+(S.mode==='tg')+'">'+L.m_tg+'</button></div></div>')}
+  +(TG||!DEMO_UI?'':'<div class="menu-sub"><span class="label">'+L.mn_demo+'</span><div class="tabs"><button class="tab" type="button" data-view="studio" aria-pressed="'+(S.view==='studio')+'">'+L.nav_studio+'</button><button class="tab" type="button" data-mode="site" aria-pressed="'+(S.mode==='site')+'">'+L.m_site+'</button><button class="tab" type="button" data-mode="tg" aria-pressed="'+(S.mode==='tg')+'">'+L.m_tg+'</button></div></div>')}
 function menuOpen(){MENU_OPEN=true;const w=$('#menuWrap'),m=$('#menu');m.innerHTML=menuInner();w.hidden=false;document.body.classList.add('menu-on');
   $('#burger').setAttribute('aria-expanded','true');requestAnimationFrame(()=>{w.classList.add('on');const f=m.querySelector('[data-nav]');if(f)f.focus()})}
 function menuClose(silent){if(!MENU_OPEN)return;MENU_OPEN=false;const w=$('#menuWrap');w.classList.remove('on');w.hidden=true;document.body.classList.remove('menu-on');
