@@ -91,7 +91,7 @@ const PRODUCTS=[
 ];
 const OCC=['bd','love','thanks','mom','sorry'];
 const WINDOWS=['10:00–12:00','12:00–14:00','14:00–16:00','16:00–18:00','18:00–20:00'];
-const PAYS=['Visa / Mastercard','Idram','Telcell','Карта РФ (RUB)','Telegram Stars','USDT'];
+const PAYS=['Visa / Mastercard','Idram','Telcell','Карта РФ (RUB)'];
 const RATE=390, DELIV=3;
 /* Bonus levels: spend in AMD over the last 30 days -> cashback %. The server is the source of truth once bonuses go live. */
 const LEVELS=[{min:0,cb:5},{min:100000,cb:7},{min:200000,cb:10},{min:300000,cb:12}];
