@@ -51,7 +51,6 @@ function shopView(){
   +'<div class="hero-foot"><span class="label">'+t('hero_vid')+'</span><button type="button" class="snd" data-act="snd" aria-pressed="false">'+t('snd_on')+'</button></div></section>'
   +promoBlock()
   +'<section class="ai" id="ai">'+aiInner()+'</section>'
-  +'<ol class="steps"><li><span class="label">01</span><b>'+t('s1t')+'</b>'+t('s1d')+'</li><li><span class="label">02</span><b>'+t('s2t')+'</b>'+t('s2d')+'</li><li><span class="label">03</span><b>'+t('s3t')+'</b>'+t('s3d')+'</li></ol>'
   +'<section class="kind" id="kind"><div><p class="label">'+t('kind_k')+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
   +vipBlock()
   +catalogBlock()
