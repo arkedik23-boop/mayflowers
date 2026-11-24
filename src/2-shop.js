@@ -1,6 +1,6 @@
 const REEL=document.createElement('video');
 (()=>{const rm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
-  REEL.src='vid/mais.mp4';REEL.poster='vid/mais.jpg';REEL.muted=true;REEL.loop=true;REEL.playsInline=true;REEL.setAttribute('playsinline','');REEL.preload='metadata';REEL.autoplay=!rm;if(rm)REEL.controls=true})();
+  REEL.src='vid/mais.mp4';REEL.poster='vid/mais.jpg';REEL.muted=true;REEL.loop=true;REEL.playsInline=true;REEL.setAttribute('playsinline','');REEL.preload='metadata';REEL.autoplay=!rm})();
 const S={cur:null,fOpen:false,f:{min:0,max:null,fl:[],col:[],fmt:[],mais:false,sort:'pop'},vip:{open:false,status:'idle'},lang:'ru',mode:'site',view:'shop',cart:[],filter:'all',orders:[],last:null,draft:{},kind:false,ai:{q:'',status:'idle',reply:'',picks:[],card:'',local:false},pick:101,pq:5,rot:0,crTarget:null};
 const LOC={ru:'ru-RU',en:'en-GB',hy:'hy-AM'};
 const $=s=>document.querySelector(s);
@@ -46,8 +46,9 @@ function pickPanel(){const p=PRODUCTS.find(x=>x.id===S.pick);if(!p)return '<p cl
   +'<div class="qty"><button type="button" data-act="pq" data-v="-1" aria-label="'+t('less')+'">−</button><span class="nums">'+S.pq+'</span><button type="button" data-act="pq" data-v="1" aria-label="'+t('more')+'">+</button></div>'
   +'<button class="btn primary" data-act="addstem">'+t('fr_add')+' · '+usd(p.usd*S.pq)+'</button>'}
 function shopView(){
-  return '<section class="hero"><div><p class="label">'+t('hero_k')+'</p><h1><span class="h-serif">'+t('hero_t1')+'</span> <span class="h-sans">'+t('hero_t2')+'</span></h1><p class="lead">'+t('hero_s')+'</p><button class="btn primary" data-act="catalog">'+t('hero_cta')+'</button></div>'
-  +'<figure class="gift"><div class="reel" id="reelSlot"><button type="button" class="snd" data-act="snd" aria-pressed="false">'+t('snd_on')+'</button></div><figcaption class="label">'+t('hero_vid')+'</figcaption></figure></section>'
+  return '<section class="hero hero-full"><div class="hero-bg" id="reelSlot"><div class="hero-shade"></div></div>'
+  +'<div class="hero-in"><p class="label">'+t('hero_k')+'</p><h1><span class="h-serif">'+t('hero_t1')+'</span> <span class="h-sans">'+t('hero_t2')+'</span></h1><p class="lead">'+t('hero_s')+'</p><button class="btn primary" data-act="catalog">'+t('hero_cta')+'</button></div>'
+  +'<div class="hero-foot"><span class="label">'+t('hero_vid')+'</span><button type="button" class="snd" data-act="snd" aria-pressed="false">'+t('snd_on')+'</button></div></section>'
   +promoBlock()
   +'<section class="ai" id="ai">'+aiInner()+'</section>'
   +'<ol class="steps"><li><span class="label">01</span><b>'+t('s1t')+'</b>'+t('s1d')+'</li><li><span class="label">02</span><b>'+t('s2t')+'</b>'+t('s2d')+'</li><li><span class="label">03</span><b>'+t('s3t')+'</b>'+t('s3d')+'</li></ol>'

@@ -370,6 +370,22 @@ body.menu-on{overflow:hidden}
 .menu-sub .theme-row{display:flex;align-items:center;gap:12px;font-size:15px}
 @media (prefers-reduced-motion:reduce){.theme-sw .knob{transition:none}}
 @media (max-width:420px){.top .logo small{display:none}.hdr-r{gap:6px}#cartBtn{padding-inline:12px}}
+/* первый экран: видео Маиса на весь экран, затемнённое, текст поверх */
+body{overflow-x:clip}
+.hero.hero-full{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;gap:0;grid-template-columns:none;
+  min-height:calc(100svh - 96px);margin-inline:calc(50% - 50vw);padding-inline:calc(50vw - 50%);padding-bottom:0;margin-top:-48px;margin-bottom:48px;isolation:isolate;color:#f4f1ec;overflow:hidden}
+.hero-bg{position:absolute;inset:0;z-index:-1;background:#0b0f0c}
+.hero-bg video{width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block;filter:saturate(.9)}
+.hero-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,9,7,.62) 0%,rgba(6,9,7,.5) 35%,rgba(6,9,7,.72) 70%,rgba(6,9,7,.92) 100%)}
+.hero-in{align-self:flex-start;max-width:880px;padding-block:clamp(56px,14vh,160px) clamp(24px,5vh,48px)}
+.hero-full .label{color:rgba(244,241,236,.72)}
+.hero-full h1{color:#f6f3ee;text-shadow:0 2px 24px rgba(0,0,0,.35)}
+.hero-full .lead{color:rgba(244,241,236,.82);max-width:44ch}
+.hero-foot{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:16px 24px;border-top:1px solid rgba(244,241,236,.18)}
+.hero-foot .label{margin:0;font-size:11px}
+.hero-foot .snd{position:static;flex:none;background:rgba(255,255,255,.14);backdrop-filter:none}
+.hero-foot .snd:hover{background:rgba(255,255,255,.24)}
+@media (max-width:720px){.hero.hero-full{min-height:calc(100svh - 88px)}.hero.hero-full{margin-top:-32px}.hero-in{padding-block:48px 24px}.hero-foot .label{font-size:10px}}
 </style>
 
 </head><body>
@@ -500,7 +516,7 @@ const PROMO={id:9,usd:38};
 const VIP={from:1000,video:''};
 const REEL=document.createElement('video');
 (()=>{const rm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
-  REEL.src='vid/mais.mp4';REEL.poster='vid/mais.jpg';REEL.muted=true;REEL.loop=true;REEL.playsInline=true;REEL.setAttribute('playsinline','');REEL.preload='metadata';REEL.autoplay=!rm;if(rm)REEL.controls=true})();
+  REEL.src='vid/mais.mp4';REEL.poster='vid/mais.jpg';REEL.muted=true;REEL.loop=true;REEL.playsInline=true;REEL.setAttribute('playsinline','');REEL.preload='metadata';REEL.autoplay=!rm})();
 const S={cur:null,fOpen:false,f:{min:0,max:null,fl:[],col:[],fmt:[],mais:false,sort:'pop'},vip:{open:false,status:'idle'},lang:'ru',mode:'site',view:'shop',cart:[],filter:'all',orders:[],last:null,draft:{},kind:false,ai:{q:'',status:'idle',reply:'',picks:[],card:'',local:false},pick:101,pq:5,rot:0,crTarget:null};
 const LOC={ru:'ru-RU',en:'en-GB',hy:'hy-AM'};
 const $=s=>document.querySelector(s);
@@ -546,8 +562,9 @@ function pickPanel(){const p=PRODUCTS.find(x=>x.id===S.pick);if(!p)return '<p cl
   +'<div class="qty"><button type="button" data-act="pq" data-v="-1" aria-label="'+t('less')+'">−</button><span class="nums">'+S.pq+'</span><button type="button" data-act="pq" data-v="1" aria-label="'+t('more')+'">+</button></div>'
   +'<button class="btn primary" data-act="addstem">'+t('fr_add')+' · '+usd(p.usd*S.pq)+'</button>'}
 function shopView(){
-  return '<section class="hero"><div><p class="label">'+t('hero_k')+'</p><h1><span class="h-serif">'+t('hero_t1')+'</span> <span class="h-sans">'+t('hero_t2')+'</span></h1><p class="lead">'+t('hero_s')+'</p><button class="btn primary" data-act="catalog">'+t('hero_cta')+'</button></div>'
-  +'<figure class="gift"><div class="reel" id="reelSlot"><button type="button" class="snd" data-act="snd" aria-pressed="false">'+t('snd_on')+'</button></div><figcaption class="label">'+t('hero_vid')+'</figcaption></figure></section>'
+  return '<section class="hero hero-full"><div class="hero-bg" id="reelSlot"><div class="hero-shade"></div></div>'
+  +'<div class="hero-in"><p class="label">'+t('hero_k')+'</p><h1><span class="h-serif">'+t('hero_t1')+'</span> <span class="h-sans">'+t('hero_t2')+'</span></h1><p class="lead">'+t('hero_s')+'</p><button class="btn primary" data-act="catalog">'+t('hero_cta')+'</button></div>'
+  +'<div class="hero-foot"><span class="label">'+t('hero_vid')+'</span><button type="button" class="snd" data-act="snd" aria-pressed="false">'+t('snd_on')+'</button></div></section>'
   +promoBlock()
   +'<section class="ai" id="ai">'+aiInner()+'</section>'
   +'<ol class="steps"><li><span class="label">01</span><b>'+t('s1t')+'</b>'+t('s1d')+'</li><li><span class="label">02</span><b>'+t('s2t')+'</b>'+t('s2d')+'</li><li><span class="label">03</span><b>'+t('s3t')+'</b>'+t('s3d')+'</li></ol>'
