@@ -10,7 +10,8 @@ let MENU_OPEN=false;
 const DEMO_UI=!ORDER_API.url||/[?&]demo=1\b/.test(location.search);
 const FIELDS=['f_sign','f_paper','f_ribbon','f_com','f_rec','f_phone','f_addr','f_date','f_win','f_exact','f_occ','f_text','f_tone','f_you','f_yphone'];
 function grab(){if(!$('#f_you'))return;FIELDS.forEach(k=>{const e=$('#'+k);if(e)S.draft[k]=e.value});
-  ['f_anon','f_rem','f_pub'].forEach(k=>{const e=$('#'+k);if(e)S.draft[k]=e.checked});
+  ['f_anon','f_rem','f_pub','f_media'].forEach(k=>{const e=$('#'+k);if(e)S.draft[k]=e.checked});
+  const w=document.querySelector('input[name=when]:checked');if(w)S.draft.when=w.value;
   const to=document.querySelector('input[name=to]:checked');if(to)S.kind=to.value==='kind';
   const c=document.querySelector('input[name=card]:checked');if(c)S.draft.card=c.value;
   const p=document.querySelector('input[name=pay]:checked');if(p)S.draft.pay=p.value}
@@ -19,44 +20,47 @@ const fld=(id,label,val,extra)=>'<label>'+label+'<input id="'+id+'" aria-describ
 function emptyBox(msg,act,lbl){return '<div class="empty"><span>'+msg+'</span>'+(act?'<button class="btn" data-act="'+act+'">'+lbl+'</button>':'')+'</div>'}
 function checkoutView(){
   if(!S.cart.length)return emptyBox(t('co_empty'),'shop',t('back'));
-  const sub=cartSum(),tot=sub+DELIV,K=S.kind,card=dv('card','none'),win=dv('f_win','asap'),today=ymd(new Date());
+  const sub=cartSum(),tot=sub+DELIV,K=S.kind,when=dv('when','asap'),win=dv('f_win','asap'),today=ymd(new Date()),media=dv('f_media',false);
   const items=S.cart.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id),key=p.id+(c.promo?'p':'');return '<div class="line"><span>'+esc(pn(p))+(c.promo?' <span class="tagp">'+t('pr_tag')+'</span>':'')+'</span><span class="qty"><button type="button" data-act="dec" data-v="'+key+'" aria-label="'+t('less')+': '+esc(pn(p))+'">−</button>'+c.q+'<button type="button" data-act="inc" data-v="'+key+'" aria-label="'+t('more')+': '+esc(pn(p))+'">+</button></span><b class="nums">'+usd(priceOf(c)*c.q)+'</b></div>'}).join('');
-  return '<h2 style="font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;margin-bottom:32px">'+t('co_t')+'</h2>'
+  const chip=(nm,v,lab,on)=>'<label class="rchip"><input type="radio" name="'+nm+'" value="'+v+'"'+(on?' checked':'')+'><span>'+lab+'</span></label>';
+  return '<h2 style="font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;margin-bottom:24px">'+t('co_t')+'</h2>'
   +'<section class="blk"><span class="label">'+t('co_sub')+'</span>'+items+'<div class="line"><span>'+t('co_deliv')+'</span><b class="nums">'+usd(DELIV)+'</b></div></section>'
-  +'<section class="blk"><span class="label">'+t('to_l')+'</span><div class="opts"><label><input type="radio" name="to" value="person"'+(K?'':' checked')+'>'+t('to_person')+'</label><label><input type="radio" name="to" value="kind"'+(K?' checked':'')+'>'+t('to_kind')+'</label></div></section>'
+  /* главное: куда, когда, открытка, телефон */
   +(K?'<section class="blk kindblk"><span class="label">'+t('kind_k')+'</span><div class="fields"><div class="full">'+fld('f_sign',t('co_sign'),dv('f_sign',''),'placeholder="'+esc(t('co_sign_ph'))+'" maxlength="40" aria-required="true"')+'</div></div>'
-  +'<label class="check" style="margin-top:8px"><input type="checkbox" id="f_pub"'+(dv('f_pub',true)?' checked':'')+'>'+t('co_pub')+'</label><p class="note" style="margin-top:8px">'+t('co_kind_d')+'</p></section>':'')
-  +(K?'':'<section class="blk"><span class="label">'+t('co_rec')+'</span><div class="fields">'
-  +fld('f_rec',t('co_rec'),dv('f_rec',''),'autocomplete="off" aria-required="true"')+fld('f_phone',t('co_phone'),dv('f_phone',''),'type="tel" inputmode="tel" placeholder="+374" aria-required="true"')
-  +'<div class="full">'+fld('f_addr',t('co_addr'),dv('f_addr',''),'autocomplete="street-address" aria-required="true"')+'</div>'
-  +'<label>'+t('co_date')+'<input id="f_date" type="date" min="'+today+'" aria-describedby="e_f_date" value="'+esc(dv('f_date',today))+'"><span class="err" id="e_f_date" data-e="f_date"></span></label>'
-  +'<label>'+t('co_win')+'<select id="f_win"><option value="asap"'+(win==='asap'?' selected':'')+'>'+t('win_asap')+'</option>'+WINDOWS.map(w=>'<option'+(win===w?' selected':'')+'>'+w+'</option>').join('')+'<option value="exact"'+(win==='exact'?' selected':'')+'>'+t('win_exact')+'</option></select></label>'
-  +(win==='exact'?'<label>'+t('win_exact')+'<input id="f_exact" type="time" value="'+esc(dv('f_exact','12:00'))+'"></label>':'')
-  +'<label>'+t('co_occ')+'<select id="f_occ">'+OCC.map(o=>'<option value="'+o+'"'+(dv('f_occ','bd')===o?' selected':'')+'>'+t('o_'+o)+'</option>').join('')+'</select></label></div></section>')
-  +'<section class="blk"><span class="label">'+t('co_wrap')+'</span><div class="fields"><label>'+t('co_paper')+'<select id="f_paper">'+t('papers').map((x,i)=>'<option value="'+i+'"'+(+dv('f_paper',0)===i?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
-  +'<label>'+t('co_ribbon')+'<select id="f_ribbon">'+t('ribbons').map((x,i)=>'<option value="'+i+'"'+(+dv('f_ribbon',0)===i?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
-  +'<label class="full">'+t('co_com')+'<textarea id="f_com" placeholder="'+esc(t('co_com_ph'))+'">'+esc(dv('f_com',''))+'</textarea></label></div></section>'
-  +(K?'':'<section class="blk"><span class="label">'+t('co_card')+'</span><div class="opts"><label><input type="radio" name="card" value="none"'+(card==='none'?' checked':'')+'>'+t('card_none')+'</label><label><input type="radio" name="card" value="text"'+(card==='text'?' checked':'')+'>'+t('card_text')+'</label><label><input type="radio" name="card" value="media"'+(card==='media'?' checked':'')+'>'+t('card_media')+'</label></div>'+(card==='media'?'<p class="note" style="margin-top:8px">'+t('card_media_d')+'</p>':'')
-  +(card==='text'?'<div class="fields" style="margin-top:16px"><label class="full">'+t('co_card_text')+'<textarea id="f_text">'+esc(dv('f_text',''))+'</textarea></label>'
-  +'<label>'+t('co_ai')+'<select id="f_tone">'+['ai_warm','ai_fun','ai_form'].map((k,i)=>'<option value="'+k+'"'+(dv('f_tone','ai_warm')===k?' selected':'')+'>'+t(['tone_warm','tone_fun','tone_form'][i])+'</option>').join('')+'</select></label>'
-  +'<div style="align-self:end"><button type="button" class="btn" data-act="ai">'+t('co_ai')+'</button></div></div>':'')
-  +'<label class="check" style="margin-top:8px"><input type="checkbox" id="f_anon"'+(dv('f_anon',false)?' checked':'')+'>'+t('co_anon')+'</label></section>')
-  +'<section class="blk"><span class="label">'+t('co_you')+'</span><div class="fields">'+fld('f_you',t('co_yname'),dv('f_you',''),'autocomplete="name" aria-required="true"')+fld('f_yphone',t('co_yphone'),dv('f_yphone',''),'type="tel" inputmode="tel" autocomplete="tel" aria-required="true"')+'</div></section>'
-  +'<section class="blk"><span class="label">'+t('co_pay')+'</span><div class="opts">'+PAYS.map(x=>'<label><input type="radio" name="pay" value="'+esc(x)+'"'+((dv('pay',PAYS[0])===x)?' checked':'')+'>'+esc(x)+'</label>').join('')+'</div><p class="note" style="margin-top:8px">'+t('pay_note')+'</p></section>'
-  +(K?'':'<section class="blk"><label class="check"><input type="checkbox" id="f_rem"'+(dv('f_rem',true)?' checked':'')+'>'+t('co_rem')+'</label><p class="note" style="margin-left:36px">'+t('co_remwhen')+'</p></section>')
-  +'<section class="blk"><div class="line"><span>'+t('co_sub')+'</span><b class="nums">'+usd(sub)+'</b></div><div class="line"><span>'+t('co_deliv')+'</span><b class="nums">'+usd(DELIV)+'</b></div>'
-  +'<div class="line t"><span>'+t('co_total')+'</span><span class="tot">'+usd(tot)+(curNow()!=='usd'?' <small class="note">$'+tot+'</small>':'')+'</span></div>'+(curNow()==='rub'?'<p class="note" style="margin-top:8px">'+t('rub_note')+'</p>':'')
+    +'<label class="check" style="margin-top:8px"><input type="checkbox" id="f_pub"'+(dv('f_pub',true)?' checked':'')+'>'+t('co_pub')+'</label><p class="note" style="margin-top:8px">'+t('co_kind_d')+'</p></section>'
+   :'<section class="blk"><span class="label">'+t('where_l')+'</span><div class="fields">'
+    +fld('f_phone',t('co_phone'),dv('f_phone',''),'type="tel" inputmode="tel" placeholder="+374" aria-required="true"')+fld('f_rec',t('rec_opt'),dv('f_rec',''),'autocomplete="off"')
+    +'<div class="full">'+fld('f_addr',t('co_addr'),dv('f_addr',''),'autocomplete="street-address" aria-required="true"')+'</div></div></section>'
+    +'<section class="blk"><span class="label">'+t('when_l')+'</span><div class="rchips" role="radiogroup" aria-label="'+t('when_l')+'">'+chip('when','asap',t('when_asap'),when==='asap')+chip('when','later',t('when_later'),when==='later')+'</div>'
+    +(when==='later'?'<div class="fields" style="margin-top:16px"><label>'+t('co_date')+'<input id="f_date" type="date" min="'+today+'" aria-describedby="e_f_date" value="'+esc(dv('f_date',today))+'"><span class="err" id="e_f_date" data-e="f_date"></span></label>'
+      +'<label>'+t('co_win')+'<select id="f_win">'+WINDOWS.map(w=>'<option'+(win===w?' selected':'')+'>'+w+'</option>').join('')+'<option value="exact"'+(win==='exact'?' selected':'')+'>'+t('win_exact')+'</option></select></label>'
+      +(win==='exact'?'<label>'+t('win_exact')+'<input id="f_exact" type="time" value="'+esc(dv('f_exact','12:00'))+'"></label>':'')+'</div>':'')+'</section>'
+    +(media?'':'<section class="blk"><span class="label">'+t('card_opt')+'</span><div class="fields"><label class="full"><span class="sr">'+t('card_opt')+'</span><textarea id="f_text" rows="2" placeholder="'+esc(t('card_ph'))+'">'+esc(dv('f_text',''))+'</textarea></label></div></section>'))
+  +'<section class="blk"><span class="label">'+t('co_you')+'</span><div class="fields">'+fld('f_yphone',t('co_yphone'),dv('f_yphone',''),'type="tel" inputmode="tel" autocomplete="tel" aria-required="true"')+fld('f_you',t('you_opt'),dv('f_you',''),'autocomplete="name"')+'</div></section>'
+  +'<section class="blk"><span class="label">'+t('pay_l')+'</span><div class="rchips" role="radiogroup" aria-label="'+t('pay_l')+'">'+PAYS.map(x=>chip('pay',esc(x),esc(x),dv('pay',PAYS[0])===x)).join('')+'</div><p class="note" style="margin-top:8px">'+t('pay_note')+'</p></section>'
+  /* всё остальное спрятано */
+  +'<details class="more blk" id="more"'+(S.moreOpen?' open':'')+'><summary><b>'+t('more_l')+'</b><span class="note">'+t('more_d')+'</span></summary><div class="more-in">'
+    +'<span class="label">'+t('to_l')+'</span><div class="rchips" role="radiogroup" aria-label="'+t('to_l')+'">'+chip('to','person',t('to_person'),!K)+chip('to','kind',t('to_kind'),K)+'</div>'
+    +(K?'':'<div class="fields"><label>'+t('co_occ')+'<select id="f_occ">'+OCC.map(o=>'<option value="'+o+'"'+(dv('f_occ',S.filter&&OCC.includes(S.filter)?S.filter:'bd')===o?' selected':'')+'>'+t('o_'+o)+'</option>').join('')+'</select></label></div>'
+      +'<label class="check"><input type="checkbox" id="f_media"'+(media?' checked':'')+'>'+t('media_opt')+'</label>'+(media?'<p class="note" style="margin:-4px 0 8px 36px">'+t('card_media_d')+'</p>':'')
+      +'<label class="check"><input type="checkbox" id="f_anon"'+(dv('f_anon',false)?' checked':'')+'>'+t('co_anon')+'</label>'
+      +'<label class="check"><input type="checkbox" id="f_rem"'+(dv('f_rem',true)?' checked':'')+'>'+t('co_rem')+'</label><p class="note" style="margin:-4px 0 8px 36px">'+t('co_remwhen')+'</p>')
+    +'<div class="fields"><label>'+t('co_paper')+'<select id="f_paper">'+t('papers').map((x,i)=>'<option value="'+i+'"'+(+dv('f_paper',0)===i?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
+    +'<label>'+t('co_ribbon')+'<select id="f_ribbon">'+t('ribbons').map((x,i)=>'<option value="'+i+'"'+(+dv('f_ribbon',0)===i?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'
+    +'<label class="full">'+t('co_com')+'<textarea id="f_com" rows="2" placeholder="'+esc(t('co_com_ph'))+'">'+esc(dv('f_com',''))+'</textarea></label></div></div></details>'
+  +'<section class="blk"><div class="line t"><span>'+t('co_total')+'</span><span class="tot">'+usd(tot)+(curNow()!=='usd'?' <small class="note">$'+tot+'</small>':'')+'</span></div>'+(curNow()==='rub'?'<p class="note" style="margin-top:8px">'+t('rub_note')+'</p>':'')
   +'<button class="btn primary" style="width:100%;margin-top:16px" data-act="place">'+t('co_place')+' · '+usd(tot)+'</button></section>'}
 function place(){
-  grab();const d=S.draft,K=S.kind,req=K?['f_sign','f_you','f_yphone']:['f_rec','f_phone','f_addr','f_date','f_you','f_yphone'];let bad=0;
+  grab();const d=S.draft,K=S.kind,later=!K&&d.when==='later',req=K?['f_sign','f_yphone']:['f_phone','f_addr','f_yphone'].concat(later?['f_date']:[]);let bad=0;
   req.forEach(k=>{const e=$('#'+k),m=document.querySelector('[data-e='+k+']'),ok=e&&String(e.value).trim();
     if(e)e.setAttribute('aria-invalid',ok?'false':'true');if(m)m.textContent=ok?'':t('req');if(!ok)bad++});
   if(bad){const f=document.querySelector('[aria-invalid=true]');if(f)f.focus();return}
+  const media=!K&&!!d.f_media,txt=(d.f_text||'').trim(),card=K?'text':(media?'media':(txt?'text':'none'));
   const sub=cartSum(),sign=K?d.f_sign.trim():'',o={id:'MF-'+(1000+S.orders.length+1),items:S.cart.map(c=>({id:c.id,q:c.q,usd:priceOf(c),promo:!!c.promo})),total:sub+DELIV,kind:K,sign,pub:K&&d.f_pub!==false,
-    date:K?ymd(new Date()):d.f_date,win:K?'asap':(d.f_win||'asap'),exact:K?'':(d.f_exact||''),rec:K?t('kind_rec'):d.f_rec.trim(),phone:K?d.f_yphone.trim():d.f_phone.trim(),addr:K?t('kind_addr'):d.f_addr.trim(),
-    occ:K?'thanks':(d.f_occ||'bd'),card:K?'text':(d.card||'none'),text:K?t('sign_card').replace('{n}',sign):(d.card==='text'?(d.f_text||''):''),anon:K?false:!!d.f_anon,you:d.f_you.trim(),yphone:d.f_yphone.trim(),pay:d.pay||PAYS[0],remind:K?false:d.f_rem!==false,status:0,ts:Date.now(),paper:+(d.f_paper||0),ribbon:+(d.f_ribbon||0),com:(d.f_com||'').trim()};
+    date:later?d.f_date:ymd(new Date()),win:later?(d.f_win||WINDOWS[0]):'asap',exact:later&&d.f_win==='exact'?(d.f_exact||''):'',rec:K?t('kind_rec'):((d.f_rec||'').trim()||'—'),phone:K?d.f_yphone.trim():d.f_phone.trim(),addr:K?t('kind_addr'):d.f_addr.trim(),
+    occ:K?'thanks':(d.f_occ||(OCC.includes(S.filter)?S.filter:'bd')),card,text:K?t('sign_card').replace('{n}',sign):(card==='text'?txt:''),anon:K?false:!!d.f_anon,you:(d.f_you||'').trim(),yphone:d.f_yphone.trim(),pay:d.pay||PAYS[0],remind:K?false:d.f_rem!==false,status:0,ts:Date.now(),paper:+(d.f_paper||0),ribbon:+(d.f_ribbon||0),com:(d.f_com||'').trim()};
   sendToBot(o);if(TG)S.me=null;
-  S.recLink=null;S.remLink=null;S.orders.unshift(o);save();S.last=o.id;S.cart=[];S.draft={};S.kind=false;S.view='done';render();window.scrollTo(0,0)}
+  S.recLink=null;S.remLink=null;S.orders.unshift(o);save();S.last=o.id;S.cart=[];S.draft={};S.kind=false;S.moreOpen=false;S.view='done';render();window.scrollTo(0,0)}
 function doneView(){const o=S.orders.find(x=>x.id===S.last);if(!o)return '';
   return '<div class="done"><span class="label nums">'+esc(o.id)+'</span><h2>'+t('ok_t')+'</h2><p>'+t('ok_d')+'</p><div class="acts">'
   +'<button class="btn primary" data-act="cabinet">'+t('ok_cab')+'</button>'
@@ -146,7 +150,7 @@ document.addEventListener('input',e=>{if(e.target.id==='ai_q')S.ai.q=e.target.va
     const l=$('#fPriceLbl');if(l)l.textContent=priceLabel()||usd(0)+' – '+usd(mx);clearTimeout(S._ft);S._ft=setTimeout(()=>catPaint(),120)}});
 document.addEventListener('change',e=>{if(e.target.id==='f_sort'){S.f.sort=e.target.value;catPaint()}});
 document.addEventListener('keydown',e=>{if(e.target.id==='ai_q'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();aiAsk()}});
-document.addEventListener('change',e=>{if(S.view!=='checkout')return;const id=e.target.id,nm=e.target.name;if(nm==='card'||nm==='to'||id==='f_win'){grab();render()}});
+document.addEventListener('change',e=>{if(S.view!=='checkout')return;const id=e.target.id,nm=e.target.name;if(nm==='card'||nm==='to'||nm==='when'||id==='f_win'||id==='f_media'){grab();const y=window.scrollY;render();window.scrollTo(0,y)}});
 load();render();
 if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){new MutationObserver(()=>document.querySelectorAll('animateTransform').forEach(x=>x.remove())).observe(document.body,{childList:true,subtree:true});document.querySelectorAll('animateTransform').forEach(x=>x.remove())}
 
@@ -282,3 +286,5 @@ function sendVip(){const g=id=>(($('#'+id)||{}).value||'').trim(),req=['v_name',
   S.vip.status='sending';const btn=document.querySelector('#vipForm [type=submit]');if(btn)btn.disabled=true;
   fetch(ORDER_API.url.replace(/\/$/,'')+'/api/vip',{method:'POST',headers:TG?{'Content-Type':'application/json','X-Telegram-Init-Data':TG.initData}:{'Content-Type':'application/json','X-Intake-Key':ORDER_API.key},body:JSON.stringify(body)})
     .then(r=>{if(!r.ok)throw r.status;done()}).catch(()=>{S.vip.status='err';render()})}
+
+document.addEventListener('toggle',e=>{if(e.target&&e.target.id==='more')S.moreOpen=e.target.open},true);
