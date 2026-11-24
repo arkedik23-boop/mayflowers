@@ -1,3 +1,10 @@
+/* тема сайта: тёмная по умолчанию, переключатель в шапке и в меню */
+const SUN='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const MOON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="currentColor"/></svg>';
+const themeNow=()=>document.documentElement.dataset.theme==='light'?'light':'dark';
+function themeSwHTML(id){const l=themeNow()==='light';return '<button class="theme-sw" '+(id?'id="'+id+'" ':'')+'type="button" role="switch" data-act="theme" aria-checked="'+l+'" aria-label="'+t('th_light')+'"><span class="knob">'+(l?SUN:MOON)+'</span></button>'}
+function themePaint(){const l=themeNow()==='light';document.querySelectorAll('.theme-sw').forEach(b=>{b.setAttribute('aria-checked',String(l));b.setAttribute('aria-label',t('th_light'));b.querySelector('.knob').innerHTML=l?SUN:MOON})}
+function themeSet(v){document.documentElement.dataset.theme=v;try{localStorage.setItem('may_theme',v)}catch(e){}themePaint();if(typeof MENU_OPEN!=='undefined'&&MENU_OPEN){const m=document.getElementById('menu');m.innerHTML=menuInner();const s=m.querySelector('.theme-sw');if(s)s.focus()}}
 let MENU_OPEN=false;
 /* demo controls (studio bot preview, site/mini-app switch): only in the mock-up or with ?demo=1, never on the live shop */
 const DEMO_UI=!ORDER_API.url||/[?&]demo=1\b/.test(location.search);
@@ -78,7 +85,7 @@ function studioView(){
 function render(){
   const L=T[S.lang];document.documentElement.lang=S.lang;
   document.querySelectorAll('[data-i]').forEach(e=>{e.textContent=L[e.dataset.i]});
-  $('#burgerLbl').textContent=L.mn_open;$('#burger').setAttribute('aria-label',L.mn_open);if(MENU_OPEN)$('#menu').innerHTML=menuInner();
+  themePaint();$('#burgerLbl').textContent=L.mn_open;$('#burger').setAttribute('aria-label',L.mn_open);if(MENU_OPEN)$('#menu').innerHTML=menuInner();
   document.body.classList.toggle('tg',S.mode==='tg');
   $('#cartBtn').textContent=L.cart+' · '+cartCount();
   if(S._tl!==S.lang){S._tl=S.lang;$('#tickHost').innerHTML=marquee()}
@@ -91,11 +98,12 @@ function chrome(){const L=T[S.lang];$('#cartBtn').textContent=L.cart+' · '+cart
   const n=cartCount();$('#stickyHost').innerHTML=(S.view==='shop'&&n&&!TG)?'<div class="sticky"><button class="btn ink" data-act="checkout">'+L.cart+' · '+n+' · '+usd(cartSum())+'</button></div>':'';tgSync();
 }
 function go(v){grab();S.view=v;render();window.scrollTo(0,0)}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data-view],[data-lang],[data-mode],[data-nav],#logo,#cartBtn,#burger');if(!b)return;
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data-view],[data-lang],[data-mode],[data-nav],#logo,#cartBtn,#burger,#themeSw');if(!b)return;
   if(b.id==='logo'){menuClose(true);return go('shop')}if(b.id==='cartBtn'){menuClose(true);return go(cartCount()?'checkout':'shop')}
   if(b.dataset.view){menuClose(true);return go(b.dataset.view)}
   if(b.dataset.lang){grab();S.lang=b.dataset.lang;return render()}
   if(b.id==='burger')return MENU_OPEN?menuClose():menuOpen();
+  if(b.id==='themeSw')return themeSet(themeNow()==='light'?'dark':'light');
   if(b.dataset.nav){menuClose(true);return navTo(b.dataset.nav)}
   if(b.dataset.mode){S.mode=b.dataset.mode;menuClose(true);return render()}
   if(b.dataset.view&&MENU_OPEN)menuClose(true);
@@ -111,6 +119,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data
   else if(a==='catalog'){const c=$('#catalog');if(c)c.scrollIntoView({behavior:'smooth'})}
   else if(a==='mgr'){menuClose(true);toast(t('mgr'))}
   else if(a==='menuclose')menuClose();
+  else if(a==='theme')themeSet(themeNow()==='light'?'dark':'light');
   else if(a==='vip'){S.vip.open=true;render();const f=$('#v_name');if(f){f.focus({preventScroll:true});$('#vip').scrollIntoView({behavior:'smooth',block:'start'})}}
   else if(a==='checkout'||a==='cabinet'||a==='studio'||a==='shop')go(a);
   else if(a==='inc'||a==='dec'){grab();const pr=/p$/.test(v),c=S.cart.find(x=>x.id===parseInt(v)&&!!x.promo===pr);if(c){c.q+=a==='inc'?1:-1;if(c.q<1)S.cart=S.cart.filter(x=>x!==c)}render()}
@@ -246,6 +255,7 @@ function menuInner(){const L=T[S.lang];
   return '<div class="menu-h"><span class="label">'+L.mn_open+'</span><button class="burger" type="button" data-act="menuclose" aria-label="'+L.mn_close+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>'
   +'<ul class="menu-list">'+items.map(([k,l])=>'<li><button type="button" data-nav="'+k+'">'+L[l]+'</button></li>').join('')
   +'<li><button type="button" data-act="mgr">'+L.mn_contact+'</button></li></ul>'
+  +'<div class="menu-sub"><span class="label">'+L.th_t+'</span><div class="theme-row">'+themeSwHTML()+'<span>'+(themeNow()==='light'?L.th_light:L.th_dark)+'</span></div></div>'
   +'<div class="menu-sub"><span class="label">'+L.cur_t+'</span>'+curSwitch()+'</div>'
   +'<div class="menu-sub"><span class="label">'+L.mn_lang+'</span><div class="tabs" role="group" aria-label="'+L.mn_lang+'">'+[['ru','RU'],['en','EN'],['hy','HY']].map(([c,n])=>'<button class="tab" type="button" data-lang="'+c+'" aria-pressed="'+(S.lang===c)+'">'+n+'</button>').join('')+'</div></div>'
   +(TG||!DEMO_UI?'':'<div class="menu-sub"><span class="label">'+L.mn_demo+'</span><div class="tabs"><button class="tab" type="button" data-view="studio" aria-pressed="'+(S.view==='studio')+'">'+L.nav_studio+'</button><button class="tab" type="button" data-mode="site" aria-pressed="'+(S.mode==='site')+'">'+L.m_site+'</button><button class="tab" type="button" data-mode="tg" aria-pressed="'+(S.mode==='tg')+'">'+L.m_tg+'</button></div></div>')}

@@ -1,4 +1,5 @@
 <title>May Flowers</title>
+<script>/* тема: по умолчанию тёмная, выбор клиента запоминается */try{document.documentElement.dataset.theme=localStorage.getItem('may_theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Доставка цветов и не только от Маиса Варданяна по Еревану. MayFlowers by Mais.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -359,4 +360,13 @@ body.menu-on{overflow:hidden}
 .cat-bar select{width:auto;flex:0 1 auto;min-height:44px}
 .cat-bar .btn{min-height:44px}
 .range input,.range input:focus{border:0;padding:0;min-height:0;box-shadow:none;outline:none;border-radius:0}
+/* переключатель темы */
+.theme-sw{position:relative;width:56px;height:32px;flex:none;border:1px solid var(--ink);border-radius:999px;background:none;color:var(--ink);cursor:pointer;padding:0}
+.theme-sw .knob{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;transition:transform .2s ease-out}
+.theme-sw[aria-checked=true] .knob{transform:translateX(24px)}
+.theme-sw svg{width:14px;height:14px}
+.theme-sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.menu-sub .theme-row{display:flex;align-items:center;gap:12px;font-size:15px}
+@media (prefers-reduced-motion:reduce){.theme-sw .knob{transition:none}}
+@media (max-width:420px){.top .logo small{display:none}.hdr-r{gap:6px}#cartBtn{padding-inline:12px}}
 </style>
