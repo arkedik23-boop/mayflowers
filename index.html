@@ -125,7 +125,8 @@ body.tg #app{overflow-x:clip}
 @keyframes marq{to{transform:translateX(-50%)}}
 .marq:hover .marq-track{animation-play-state:paused}
 .kind{display:grid;grid-template-columns:7fr 5fr;gap:24px 48px;align-items:end;border-top:1px solid var(--ink);padding-block:24px 64px}
-.kind h2{font-size:clamp(40px,7vw,72px);font-weight:800;letter-spacing:-.045em;margin-top:8px;background:linear-gradient(105deg,var(--ink) 0 40%,var(--accent) 48%,color-mix(in oklab,var(--accent) 45%,var(--paper)) 50%,var(--accent) 52%,var(--ink) 60% 100%);background-size:300% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent;animation:glint 5s ease-in-out 1s infinite}
+.kind h2{font-size:clamp(40px,7vw,72px);font-weight:800;letter-spacing:-.045em;margin-top:8px;background:linear-gradient(105deg,var(--ink) 0 40%,var(--accent) 48%,color-mix(in oklab,var(--accent) 45%,var(--paper)) 50%,var(--accent) 52%,var(--ink) 60% 100%);background-size:300% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent;animation:glint-slow 4s ease-in-out .5s infinite}
+@keyframes glint-slow{0%{background-position:100% 0}75%,100%{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.kind h2{animation:none;background:none;color:var(--ink)}}
 .kind p:not(.label){color:var(--muted);margin-bottom:24px;text-wrap:pretty}
 .kindblk{border-top-color:var(--accent)}
