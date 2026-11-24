@@ -24,17 +24,26 @@ function calLink(o){const d=nextYear(o.date).replace(/-/g,'');const e=ymd(new Da
 function art(p,eager){return '<img src="'+p.img+'" alt="'+esc(pn(p))+'" width="720" height="900"'+(eager?'':' loading="lazy"')+' decoding="async">'}
 /* bouquet of the day: active until local midnight */
 const promoEnd=()=>{const d=new Date();d.setHours(23,59,59,999);return d};
-const promoOn=()=>!!(PROMO&&PRODUCTS.find(p=>p.id===PROMO.id))&&Date.now()<promoEnd().getTime();
+const promoOn=()=>!!(PROMO&&PROMO.on!==false&&PRODUCTS.find(p=>p.id===PROMO.id))&&Date.now()<promoEnd().getTime();
 const priceOf=c=>c.promo&&promoOn()&&c.id===PROMO.id?PROMO.usd:PRODUCTS.find(p=>p.id===c.id).usd;
 const cartSum=()=>S.cart.reduce((a,c)=>a+priceOf(c)*c.q,0);
 const cartCount=()=>S.cart.reduce((a,c)=>a+c.q,0);
 function add(id,promo){promo=!!promo;const c=S.cart.find(x=>x.id===id&&!!x.promo===promo);c?c.q++:S.cart.push(promo?{id,q:1,promo:true}:{id,q:1});chrome();toast(t('add')+': '+pn(PRODUCTS.find(p=>p.id===id)))}
 function promoLeft(){const ms=Math.max(0,promoEnd()-Date.now()),h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return t('pr_left').replace('{t}',(h?h+'\u00a0'+t('pr_h')+' ':'')+m+'\u00a0'+t('pr_m'))}
-function promoBlock(){if(!promoOn())return '';const p=PRODUCTS.find(x=>x.id===PROMO.id),pr=usd(PROMO.usd);
-  return '<section class="promo" id="promo" aria-labelledby="promoT"><div class="tintbox">'+art(p)+'<span class="promo-tag">\u2212'+Math.round((1-PROMO.usd/p.usd)*100)+'%</span></div><div class="promo-body"><p class="label">'+t('pr_k')+' · <span id="promoLeft" class="nums">'+promoLeft()+'</span></p><h2 id="promoT">'+esc(pn(p))+'</h2><p class="comp">'+esc(pk(p))+'</p>'
+const promoTag=p=>'<span class="promo-tag">\u2212'+Math.round((1-PROMO.usd/p.usd)*100)+'%</span>';
+/* полоска «Букет дня» над каталогом: открывает всплывающее окно */
+function promoStrip(){if(!promoOn())return '';const p=PRODUCTS.find(x=>x.id===PROMO.id);
+  return '<button type="button" class="promo-strip" id="promo" data-act="promoopen" aria-haspopup="dialog"><span class="ps-img">'+art(p)+'</span>'
+  +'<span class="ps-t"><span class="label">'+t('pr_k')+' · <span class="promoLeft nums">'+promoLeft()+'</span></span><b>'+esc(pn(p))+'</b></span>'
+  +'<span class="ps-p"><s class="nums">'+usd(p.usd)+'</s> <b class="nums">'+usd(PROMO.usd)+'</b></span><span class="ps-go">'+t('pr_look')+'</span></button>'}
+function promoModalHTML(){const p=PRODUCTS.find(x=>x.id===PROMO.id),pr=usd(PROMO.usd);
+  return '<div class="pm-bg" data-act="promoclose"></div><div class="pm" role="dialog" aria-modal="true" aria-labelledby="pmT">'
+  +'<button class="pm-x" type="button" data-act="promoclose" aria-label="'+t('pr_close')+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>'
+  +'<div class="tintbox">'+art(p)+promoTag(p)+'</div><div class="pm-body"><p class="label">'+t('pr_k')+' · <span class="promoLeft nums">'+promoLeft()+'</span></p><h2 id="pmT">'+esc(pn(p))+'</h2><p class="comp">'+esc(pk(p))+'</p>'
   +'<p class="promo-price"><s class="nums">'+usd(p.usd)+'</s><b class="nums">'+pr+'</b></p>'
-  +'<button class="btn primary" data-act="promo">'+t('pr_btn').replace('{p}',pr)+'</button><p class="note">'+t('pr_note')+'</p></div></section>'}
-setInterval(()=>{const el=document.getElementById('promoLeft');if(!el)return;if(!promoOn()){if(S.view==='shop')render();return}el.textContent=promoLeft()},30000);
+  +'<div class="pm-btns"><button class="btn primary" type="button" data-act="promo">'+t('pr_btn').replace('{p}',pr)+'</button><button class="btn" type="button" data-act="promoclose">'+t('pr_later')+'</button></div>'
+  +'<p class="note">'+t('pr_note')+'</p></div></div>'}
+setInterval(()=>{const els=document.querySelectorAll('.promoLeft');if(!els.length)return;if(!promoOn()){promoClose();if(S.view==='shop')render();return}els.forEach(el=>el.textContent=promoLeft())},30000);
 function marquee(){const s=('<span>'+esc(t('rib'))+'</span>').repeat(3);return '<div class="marq" role="marquee" aria-label="'+esc(t('rib'))+'"><div class="marq-track" aria-hidden="true">'+s+s+'</div></div>'}
 function fridge(){
   const st=PRODUCTS.filter(p=>p.stem);
@@ -47,13 +56,13 @@ function pickPanel(){const p=PRODUCTS.find(x=>x.id===S.pick);if(!p)return '<p cl
   +'<button class="btn primary" data-act="addstem">'+t('fr_add')+' · '+usd(p.usd*S.pq)+'</button>'}
 function shopView(){
   return '<section class="hero hero-full"><div class="hero-bg" id="reelSlot"><div class="hero-shade"></div></div>'
-  +'<div class="hero-in"><p class="label">'+t('hero_k')+'</p><h1><span class="h-serif">'+t('hero_t1')+'</span> <span class="h-sans">'+t('hero_t2')+'</span></h1><p class="lead">'+t('hero_s')+'</p><button class="btn primary" data-act="catalog">'+t('hero_cta')+'</button></div>'
+  +'<div class="hero-in"><p class="label">'+t('hero_k')+'</p><h1><span class="h-serif">'+t('hero_t1')+'</span> <span class="h-sans">'+t('hero_t2')+'</span></h1><p class="lead">'+t('hero_s')+'</p><div class="hero-cta"><button class="btn primary" data-act="catalog">'+t('hero_cta')+'</button><button class="btn ghost-w" data-nav="ai">'+t('hero_ai')+'</button></div></div>'
   +'<div class="hero-foot"><span class="label">'+t('hero_vid')+'</span></div></section>'
-  +promoBlock()
-  +'<section class="ai" id="ai">'+aiInner()+'</section>'
-  +'<section class="kind" id="kind"><div><p class="label">'+t('kind_k')+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
-  +vipBlock()
+  +promoStrip()
   +catalogBlock()
+  +'<section class="kind" id="kind"><div><p class="label">'+t('kind_k')+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
+  +'<section class="ai" id="ai">'+aiInner()+'</section>'
+  +vipBlock()
   +'<div class="custom"><div><h3>'+t('cu_t')+'</h3><p>'+t('cu_d')+'</p></div><button class="btn" data-act="mgr">'+t('cu_cta')+'</button></div>'}
 
 /* smart assistant: asks Claude through the page's sample capability, falls back to keyword matching */
