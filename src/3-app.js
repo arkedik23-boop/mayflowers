@@ -66,7 +66,8 @@ function doneView(){const o=S.orders.find(x=>x.id===S.last);if(!o)return '';
   +'<button class="btn primary" data-act="cabinet">'+t('ok_cab')+'</button>'
   +(o.remind&&!TG&&S.remLink?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(S.remLink)+'">'+t('ok_rem')+'</a>':'')+(o.remind?'<a class="btn" target="_blank" rel="noopener" href="'+calLink(o)+'">'+t('ok_cal')+'</a>':'')
   +(DEMO_UI?'<button class="btn" data-act="studio">'+t('nav_studio')+'</button>':'')+'</div>'
-  +(o.card==='media'?'<div class="blk" style="margin-top:32px"><span class="label">'+t('card_media')+'</span>'+(TG?'<p>'+t('ok_rec_tg')+'</p>':(S.recLink?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(S.recLink)+'">'+t('ok_rec')+'</a>':'<p class="note">'+t('card_media_d')+'</p>'))+'</div>':'')+'</div>'}
+  +(o.card==='media'&&!TG&&(o.manage||!ORDER_API.url)?'<div style="margin-top:32px;max-width:560px">'+localCardBox(o)+'</div>':'')
+  +(o.card==='media'&&(TG||(!o.manage&&ORDER_API.url))?'<div class="blk" style="margin-top:32px"><span class="label">'+t('card_media')+'</span>'+(TG?'<p>'+t('ok_rec_tg')+'</p>':(S.recLink?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(S.recLink)+'">'+t('ok_rec')+'</a>':'<p class="note">'+t('card_media_d')+'</p>'))+'</div>':'')+'</div>'}
 function itemsText(o){return o.items.map(i=>{const p=PRODUCTS.find(x=>x.id===i.id);return pn(p)+' × '+i.q}).join(', ')}
 function whenText(o){return fdate(o.date)+', '+(o.win==='asap'?t('win_asap'):o.win==='exact'?o.exact:o.win)}
 function h2(s){return '<h2 style="font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;margin-bottom:32px">'+s+'</h2>'}
@@ -160,6 +161,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data
   else if(a==='promo'){if(promoOn())add(PROMO.id,true);promoClose()}
   else if(a==='promoopen')promoOpen();
   else if(a==='cardadd')cardAdd(v);
+  else if(a==='recopen')recOpen(v,b.dataset.k);
+  else if(a==='recstart')recStart();
+  else if(a==='recstop'){if(RC&&RC.rec&&RC.rec.state==='recording')RC.rec.stop()}
+  else if(a==='recagain'){if(RC){if(RC.url)URL.revokeObjectURL(RC.url);RC.url=null;RC.blob=null;RC.msg='';recStart()}}
+  else if(a==='recsend')recSend();
+  else if(a==='recclose')recClose();
+  else if(a==='cmre'){CM_RE[v]=true;render()}
   else if(a==='cardrec')cardRec(v);
   else if(a==='promoclose')promoClose();
   else if(a==='tbcart'){menuClose(true);cartCount()?go('checkout'):navTo('catalog')}
@@ -201,7 +209,7 @@ function sendToBot(o){if(!ORDER_API.url)return;
     wrapping:{paper:R.papers[o.paper||0],ribbon:R.ribbons[o.ribbon||0]},kindness:!!o.kind,kind_hands:o.kind?{sign:o.sign,public:!!o.pub}:null,comment:com,payment:{method:o.pay,status:'demo'},lang:S.lang,remind:!!o.remind};
   fetch(ORDER_API.url.replace(/\/$/,'')+'/api/orders',{method:'POST',headers:TG?{'Content-Type':'application/json','X-Telegram-Init-Data':TG.initData}:{'Content-Type':'application/json','X-Intake-Key':ORDER_API.key},body:JSON.stringify(body)})
     .then(r=>{if(!r.ok)throw r.status;if(TG)try{TG.HapticFeedback.notificationOccurred('success')}catch(e){}return r.json().catch(()=>({}))})
-    .then(j=>{let ch=false;if(j&&j.manage){o.srv=String(j.id||o.id);o.manage=String(j.manage);save()}if(j&&j.record_link&&/^https:\/\/t\.me\//.test(j.record_link)){S.recLink=j.record_link;ch=true}if(j&&j.remind_link&&/^https:\/\/t\.me\//.test(j.remind_link)){S.remLink=j.remind_link;ch=true}if(ch&&S.view==='done')render()}).catch(()=>toast(t('send_fail')))}
+    .then(j=>{let ch=false;if(j&&j.manage){o.srv=String(j.id||o.id);o.manage=String(j.manage);save();ch=true;if(o.card==='media')MSTATE[o.id]={media:{recorded:false,kind:'',listen:'',record_link:tgLink(j.record_link)},late:false}}if(j&&j.record_link&&/^https:\/\/t\.me\//.test(j.record_link)){S.recLink=j.record_link;ch=true}if(j&&j.remind_link&&/^https:\/\/t\.me\//.test(j.remind_link)){S.remLink=j.remind_link;ch=true}if(ch&&S.view==='done')render()}).catch(()=>toast(t('send_fail')))}
 
 /* Telegram mini app: same page inside Telegram, with Telegram's own main and back buttons */
 function tgSync(){if(!TG)return;
@@ -255,13 +263,20 @@ const tgLink=u=>/^https:\/\/t\.me\//.test(u||'')?u:'';
 function cardBox(id,st){if(!st)return '';const m=st.media,lt=st.late;
   if(lt&&!(m&&m.recorded))return '';
   let h='<div class="cm"><span class="label">'+t('cm_t')+'</span>';
-  if(st.loading)return h+'<p class="muted">'+t('cab_loading')+'</p></div>';
-  if(m&&m.recorded){h+='<p>'+t('cm_done')+(m.kind?' · '+t('cmk_'+m.kind):'')+'</p><div class="acts">'
+  if(st.loading)return h+'<p class="muted">…</p></div>';
+  const web=!TG&&REC_CAN;
+  if(m&&m.processing){h+='<p>'+t('rc_proc')+'</p>';if(!CM_POLL[id]){CM_POLL[id]=1;setTimeout(()=>{delete CM_POLL[id];const lo=S.orders.find(x=>x.id===id);if(lo&&lo.manage)cardState(lo);else if(TG)meLoad()},20000)}}
+  else if(m&&m.recorded){const re=!lt&&CM_RE[id];h+='<p>'+t('cm_done')+(m.kind?' · '+t('cmk_'+m.kind):'')+'</p><div class="acts">'
     +(m.listen?'<a class="btn sm" target="_blank" rel="noopener" href="'+esc(m.listen)+'">'+t('cm_listen')+'</a>':'')
-    +(lt?'':cardRecBtn(id,m,t('cm_redo'),''))+'</div>'+(lt?'<p class="note">'+t('cm_late')+'</p>':'')}
-  else if(m){h+='<p>'+t('cm_wait')+'</p><div class="acts">'+cardRecBtn(id,m,t('cm_rec'),' primary')+'</div><p class="note">'+t('cm_hint')+'</p>'}
-  else h+='<p class="muted">'+t('cm_none')+'</p><div class="acts"><button type="button" class="btn sm primary" data-act="cardadd" data-v="'+esc(id)+'"'+(st.busy?' disabled':'')+'>'+t('cm_add')+'</button></div>';
+    +(lt?'':web?(re?'':'<button type="button" class="btn sm" data-act="cmre" data-v="'+esc(id)+'">'+t('cm_redo')+'</button>'):cardRecBtn(id,m,t('cm_redo'),''))+'</div>'
+    +(re?recBtns(id,m,''):'')+(lt?'<p class="note">'+t('cm_late')+'</p>':'')}
+  else if(m){h+='<p>'+t('cm_wait')+'</p>'+(web?recBtns(id,m,' primary'):'<div class="acts">'+cardRecBtn(id,m,t('cm_rec'),' primary')+'</div><p class="note">'+t('cm_hint')+'</p>')}
+  else h+='<p class="muted">'+t('cm_none')+'</p>'+(web?recBtns(id,null,' primary',st.busy):'<div class="acts"><button type="button" class="btn sm primary" data-act="cardadd" data-v="'+esc(id)+'"'+(st.busy?' disabled':'')+'>'+t('cm_add')+'</button></div>');
   return h+'</div>'}
+const CM_RE={},CM_POLL={};
+function recBtns(id,m,cls,busy){const u=m&&tgLink(m.record_link);
+  return '<div class="acts"><button type="button" class="btn sm'+cls+'" data-act="recopen" data-k="voice" data-v="'+esc(id)+'">'+t('rc_voice')+'</button><button type="button" class="btn sm" data-act="recopen" data-k="video" data-v="'+esc(id)+'">'+t('rc_video')+'</button></div>'
+    +'<p class="note">'+(u?'<a target="_blank" rel="noopener" href="'+esc(u)+'">'+t('rc_tg')+'</a>':'<button type="button" class="lnk" data-act="cardadd" data-v="'+esc(id)+'"'+(busy?' disabled':'')+'>'+t('rc_tg')+'</button>')+'</p>'}
 function cardRecBtn(id,m,label,cls){const u=tgLink(m.record_link);
   if(TG||!u)return '<button type="button" class="btn sm'+cls+'" data-act="cardrec" data-v="'+esc(id)+'">'+label+'</button>';
   return '<a class="btn sm'+cls+'" target="_blank" rel="noopener" href="'+esc(u)+'">'+label+'</a>'}
@@ -273,8 +288,8 @@ function localCardBox(o){
 function cardApi(path,o){const body={order_id:o.srv||o.id};let h={'Content-Type':'application/json'};
   if(TG)h['X-Telegram-Init-Data']=TG.initData;else body.manage=o.manage;
   return fetch(ORDER_API.url.replace(/\/$/,'')+path,{method:'POST',headers:h,body:JSON.stringify(body)}).then(r=>r.json().then(j=>{if(!r.ok)throw j.error||r.status;return j}))}
-function cardState(o){cardApi('/api/card/state',o).then(j=>{MSTATE[o.id]={media:j.media,late:j.status==='delivered'||j.status==='cancelled'};if(S.view==='cabinet')render()})
-  .catch(()=>{MSTATE[o.id]={err:true};if(S.view==='cabinet')render()})}
+function cardState(o){const re=()=>{if(S.view==='cabinet'||S.view==='done'){const y=window.scrollY;render();window.scrollTo(0,y)}};cardApi('/api/card/state',o).then(j=>{MSTATE[o.id]={media:j.media,late:j.status==='delivered'||j.status==='cancelled'};re()})
+  .catch(()=>{MSTATE[o.id]={err:true};re()})}
 function cardFind(id){const so=S.me&&S.me.data&&S.me.data.orders.find(x=>x.id===id);return so?{srv:so,local:null}:{srv:null,local:S.orders.find(x=>x.id===id)}}
 function cardOpen(u){if(!u)return;if(TG){try{TG.openTelegramLink(u)}catch(e){location.href=u}}else{const w=window.open(u,'_blank','noopener');if(!w)location.href=u}}
 function cardAdd(id){const {srv,local}=cardFind(id);
@@ -287,6 +302,51 @@ function cardAdd(id){const {srv,local}=cardFind(id);
 function cardRec(id){const {srv,local}=cardFind(id);
   if(!ORDER_API.url&&local){local.mdemo={recorded:true,kind:'voice'};save();render();toast(t('cm_demo'));return}
   const m=srv?srv.media:(MSTATE[id]||{}).media;cardOpen(tgLink(m&&m.record_link))}
+/* Запись поздравления прямо на сайте: голос или видео из браузера, до 60 секунд */
+const REC_CAN=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder),REC_MAX=60;
+let RC=null;
+function recMime(k){const L=k==='video'?['video/mp4','video/webm;codecs=vp8,opus','video/webm']:['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+  return L.find(m=>{try{return MediaRecorder.isTypeSupported(m)}catch(e){return false}})||''}
+const mmss=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+function recHTML(){const r=RC,v=r.kind==='video',el=v?'video':'audio';
+  let body='';
+  if(r.state==='idle')body='<div class="acts"><button type="button" class="btn primary" data-act="recstart">'+t('rc_start')+'</button></div>';
+  else if(r.state==='live')body='<p class="rc-live"><span class="rc-dot" aria-hidden="true"></span>'+t('rc_live')+' · <span class="nums" id="rcTime">'+mmss(0)+'</span> / '+mmss(REC_MAX)+'</p><div class="acts"><button type="button" class="btn primary" data-act="recstop">'+t('rc_stop')+'</button></div>';
+  else if(r.state==='review'||r.state==='sending')body='<'+el+' class="rc-play" controls playsinline src="'+r.url+'"></'+el+'><div class="acts"><button type="button" class="btn primary" data-act="recsend"'+(r.state==='sending'?' disabled':'')+'>'+(r.state==='sending'?t('rc_sending')+(r.pct!=null?' '+r.pct+'%':''):t('rc_send'))+'</button><button type="button" class="btn" data-act="recagain"'+(r.state==='sending'?' disabled':'')+'>'+t('rc_again')+'</button></div>';
+  return '<div class="pm-bg" data-act="recclose"></div><div class="pm rc" role="dialog" aria-modal="true" aria-labelledby="rcT"><button class="pm-x" type="button" data-act="recclose" aria-label="'+t('rc_close')+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>'
+    +'<div class="pm-body"><p class="label">'+t('cm_t')+'</p><h2 id="rcT">'+t(v?'rc_tvid':'rc_tv')+'</h2><p class="comp">'+t('rc_lead')+'</p>'
+    +(v&&r.state==='live'?'<video class="rc-cam" id="rcCam" muted playsinline autoplay></video>':'')
+    +body+(r.msg?'<p class="err" role="alert">'+esc(r.msg)+'</p>':'')+'</div></div>'}
+function recPaint(){if(!RC)return;const h=$('#recHost');h.innerHTML=recHTML();const cam=$('#rcCam');if(cam&&RC.stream){cam.srcObject=RC.stream;cam.play().catch(()=>{})}
+  const f=h.querySelector('.pm .btn.primary:not([disabled])')||h.querySelector('.pm-x');if(f)f.focus({preventScroll:true})}
+function recTarget(id){const {srv,local}=cardFind(id);if(srv)return {srv:srv.id,id:srv.id,tg:true,ref:srv};if(local)return local;return null}
+function recOpen(id,kind){const o=recTarget(id);if(!o)return;if(ORDER_API.url&&!o.tg&&!o.manage){toast(t('rc_wait'));return}
+  RC={id,kind,state:'idle',ret:document.activeElement};const h=$('#recHost');h.hidden=false;document.body.classList.add('menu-on');recPaint();requestAnimationFrame(()=>h.classList.add('on'))}
+function recStopStream(){if(RC&&RC.stream){RC.stream.getTracks().forEach(x=>x.stop());RC.stream=null}if(RC&&RC.timer){clearInterval(RC.timer);RC.timer=null}}
+function recClose(){if(!RC)return;if(RC.xhr)try{RC.xhr.abort()}catch(e){}if(RC.rec&&RC.rec.state==='recording'){RC.rec.onstop=null;try{RC.rec.stop()}catch(e){}}recStopStream();if(RC.url)URL.revokeObjectURL(RC.url);
+  const ret=RC.ret;RC=null;const h=$('#recHost');h.classList.remove('on');h.hidden=true;h.innerHTML='';if(!MENU_OPEN&&!PM_OPEN)document.body.classList.remove('menu-on');if(ret&&ret.isConnected)ret.focus({preventScroll:true})}
+function recStart(){const r=RC;if(!r)return;r.msg='';const v=r.kind==='video';
+  navigator.mediaDevices.getUserMedia(v?{audio:true,video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}}}:{audio:{echoCancellation:true,noiseSuppression:true}})
+    .then(stream=>{if(RC!==r){stream.getTracks().forEach(x=>x.stop());return}r.stream=stream;const mime=recMime(r.kind);let mr;
+      try{mr=new MediaRecorder(stream,Object.assign(mime?{mimeType:mime}:{},v?{videoBitsPerSecond:1500000,audioBitsPerSecond:96000}:{audioBitsPerSecond:96000}))}catch(e){mr=new MediaRecorder(stream)}
+      r.rec=mr;r.chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)r.chunks.push(e.data)};
+      mr.onstop=()=>{recStopStream();if(RC!==r)return;r.blob=new Blob(r.chunks,{type:(mr.mimeType||mime||(v?'video/webm':'audio/webm'))});if(r.url)URL.revokeObjectURL(r.url);r.url=URL.createObjectURL(r.blob);r.state='review';recPaint()};
+      mr.start(1000);r.t0=Date.now();r.state='live';recPaint();
+      r.timer=setInterval(()=>{const s=(Date.now()-r.t0)/1000,el=$('#rcTime');if(el)el.textContent=mmss(s);if(s>=REC_MAX&&mr.state==='recording')mr.stop()},250)})
+    .catch(()=>{if(RC!==r)return;r.msg=t('rc_denied');r.state='idle';recPaint()})}
+function recSend(){const r=RC;if(!r||!r.blob)return;const o=recTarget(r.id);if(!o)return;
+  const done=(media,proc)=>{if(o.tg){o.ref.media=media}else{MSTATE[r.id]={media,late:false};if(!o.manage){o.mdemo={recorded:true,kind:r.kind};o.card='media';save()}}CM_RE[r.id]=false;recClose();render();toast(proc?t('rc_proc'):t('rc_done'))};
+  if(!ORDER_API.url){o.mdemo={recorded:true,kind:r.kind};o.card='media';save();CM_RE[r.id]=false;recClose();render();toast(t('rc_done'));return}
+  if(r.blob.size>39e6){r.msg=t('rc_big');recPaint();return}
+  r.state='sending';r.pct=0;r.msg='';recPaint();const x=new XMLHttpRequest();r.xhr=x;
+  x.open('POST',ORDER_API.url.replace(/\/$/,'')+'/api/card/upload');x.setRequestHeader('Content-Type',(r.blob.type||'').split(';')[0]||'application/octet-stream');
+  x.setRequestHeader('X-Order-Id',encodeURIComponent(o.srv||o.id));x.setRequestHeader('X-Card-Kind',r.kind);
+  if(TG)x.setRequestHeader('X-Telegram-Init-Data',TG.initData);else x.setRequestHeader('X-Manage',encodeURIComponent(o.manage||''));
+  x.upload.onprogress=e=>{if(RC!==r||!e.lengthComputable)return;r.pct=Math.round(e.loaded/e.total*100);const b=$('#recHost [data-act=recsend]');if(b)b.textContent=t('rc_sending')+' '+r.pct+'%'};
+  x.onload=()=>{r.xhr=null;let j={};try{j=JSON.parse(x.responseText)}catch(e){}if(RC!==r)return;
+    if(x.status===200&&j.ok)return done(j.media,j.processing);
+    r.state='review';r.msg=x.status===409?t('cm_late'):x.status===413?t('rc_big'):t('rc_fail');recPaint()};
+  x.onerror=()=>{r.xhr=null;if(RC!==r)return;r.state='review';r.msg=t('rc_fail');recPaint()};x.send(r.blob)}
 const PHOTO_URL={};
 function mePhotos(){document.querySelectorAll('img[data-photo]').forEach(img=>{const id=img.dataset.photo;
   if(PHOTO_URL[id]){img.src=PHOTO_URL[id];return}
@@ -332,7 +392,9 @@ function navTo(k){if(k==='promo')return promoOpen();const anchors={catalog:'cata
   if(anchors[k]){if(S.view!=='shop')go('shop');const el=document.getElementById(anchors[k]);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});const f=el.querySelector('h2,h1');if(f){f.setAttribute('tabindex','-1');f.focus({preventScroll:true})}}return}
   if(k==='cabinet')return go('cabinet');
   if(k==='bonus'){go('cabinet');setTimeout(()=>{const el=document.querySelector('.bonus');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}}
-document.addEventListener('keydown',e=>{if(PM_OPEN){if(e.key==='Escape'){e.preventDefault();promoClose()}else if(e.key==='Tab'){const f=[...$('#promoHost').querySelectorAll('.pm button')];const a=f[0],z=f[f.length-1];
+document.addEventListener('keydown',e=>{if(RC){if(e.key==='Escape'){e.preventDefault();recClose()}else if(e.key==='Tab'){const f=[...$('#recHost').querySelectorAll('.pm button:not([disabled]),.pm audio,.pm video[controls]')];if(!f.length)return;const a=f[0],z=f[f.length-1];
+    if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}return}
+  if(PM_OPEN){if(e.key==='Escape'){e.preventDefault();promoClose()}else if(e.key==='Tab'){const f=[...$('#promoHost').querySelectorAll('.pm button')];const a=f[0],z=f[f.length-1];
     if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}return}
   if(!MENU_OPEN&&S.fOpen&&e.key==='Escape'){S.fOpen=false;catPaint();const fb=$('#fBtn');if(fb)fb.focus();return}if(!MENU_OPEN)return;if(e.key==='Escape'){e.preventDefault();menuClose()}
   else if(e.key==='Tab'){const f=[...$('#menu').querySelectorAll('button')];if(!f.length)return;const a=f[0],z=f[f.length-1];

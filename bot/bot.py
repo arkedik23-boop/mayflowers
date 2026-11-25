@@ -55,6 +55,7 @@ AI_DAILY_CAP = int(os.environ.get("AI_DAILY_CAP", "3000"))     # всего от
 HUMAN_HOURS = float(os.environ.get("HUMAN_HOURS", "6"))        # сколько часов диалог ведёт человек после «Позвать человека»
 MEDIA_DIR = os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "cards")  # кеш записей для открыток
 CARD_REPLY_MAX = 6_000_000  # байт на голосовой ответ из браузера
+CARD_UPLOAD_MAX = 40_000_000  # байт на поздравление, записанное прямо на сайте (до 60 с видео)
 CATALOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "catalog.json")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -1420,7 +1421,7 @@ def validate(o):
 class Intake(BaseHTTPRequestHandler):
     def cors(self):
         self.send_header("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Intake-Key, X-Telegram-Init-Data")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Intake-Key, X-Telegram-Init-Data, X-Order-Id, X-Manage, X-Card-Kind")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Max-Age", "600")
 
@@ -1483,6 +1484,9 @@ class Intake(BaseHTTPRequestHandler):
         p = self.path.split("?")[0]
         if p.startswith("/api/card/") and p.endswith("/reply"):
             self.card_reply(p[len("/api/card/"):-len("/reply")])
+            return
+        if p == "/api/card/upload":
+            self.card_upload()
             return
         if p in ("/api/card/add", "/api/card/state"):
             self.card_manage(p.endswith("/add"))
@@ -1715,18 +1719,8 @@ class Intake(BaseHTTPRequestHandler):
         if not hits_allowed("cardm:" + ip, 30, 600):
             self.reply(429, {"ok": False, "error": "слишком часто"})
             return
-        row = q("SELECT status, client_chat FROM orders WHERE id=?", (oid,), one=True) if oid else None
-        uid = None
-        if self.headers.get("X-Telegram-Init-Data"):
-            uid = self.tg_user()
-            if uid is None:
-                return
-            ok = bool(row) and row["client_chat"] == uid
-        else:
-            code = q("SELECT code FROM order_codes WHERE order_id=?", (oid,), one=True) if oid else None
-            ok = bool(row and code) and secrets.compare_digest(str(body.get("manage") or ""), code["code"])
-        if not ok:
-            self.reply(404, {"ok": False, "error": "not_found"})
+        row, uid = self.order_owner(oid, body.get("manage"))
+        if not row:
             return
         if add:
             err, c = card_add(oid, uid)
@@ -1736,6 +1730,54 @@ class Intake(BaseHTTPRequestHandler):
         else:
             c = q("SELECT * FROM cards WHERE order_id=?", (oid,), one=True)
         self.reply(200, {"ok": True, "status": row["status"], "media": card_info(c)})
+
+    def order_owner(self, oid, manage):
+        """Проверить, что запрос от владельца заказа. (строка заказа, telegram id) или (None, None) — ответ уже отправлен."""
+        row = q("SELECT status, client_chat FROM orders WHERE id=?", (oid,), one=True) if oid else None
+        uid = None
+        if self.headers.get("X-Telegram-Init-Data"):
+            uid = self.tg_user()
+            if uid is None:
+                return None, None
+            ok = bool(row) and row["client_chat"] == uid
+        else:
+            code = q("SELECT code FROM order_codes WHERE order_id=?", (oid,), one=True) if oid else None
+            ok = bool(row and code) and secrets.compare_digest(str(manage or ""), code["code"])
+        if not ok:
+            self.reply(404, {"ok": False, "error": "not_found"})
+            return None, None
+        return row, uid
+
+    def card_upload(self):
+        """Поздравление, записанное прямо на сайте: голос или видео из браузера."""
+        ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
+        length = int(self.headers.get("Content-Length") or 0)
+        if not hits_allowed("cardu:" + ip, 12, 3600):
+            self.reply(429, {"ok": False, "error": "слишком часто"})
+            return
+        if length <= 1000 or length > CARD_UPLOAD_MAX:
+            self.reply(413, {"ok": False, "error": "too_big" if length > CARD_UPLOAD_MAX else "empty"})
+            return
+        ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        kind = "video" if (self.headers.get("X-Card-Kind") or "") == "video" else "voice"
+        if not ctype.startswith(("audio/", "video/")):
+            self.reply(415, {"ok": False, "error": "нужна аудио- или видеозапись"})
+            return
+        oid = urllib.parse.unquote(self.headers.get("X-Order-Id") or "")[:40]
+        row, uid = self.order_owner(oid, urllib.parse.unquote(self.headers.get("X-Manage") or ""))
+        if not row:
+            return
+        data = self.rfile.read(length)
+        err, c = card_add(oid, uid)
+        if err:
+            self.reply(409 if err == "late" else 404, {"ok": False, "error": err})
+            return
+        processing = card_save_upload(c, data, ctype, kind)
+        if processing is None:
+            self.reply(422, {"ok": False, "error": "запись не читается"})
+            return
+        c = q("SELECT * FROM cards WHERE order_id=?", (oid,), one=True)
+        self.reply(200, {"ok": True, "processing": processing, "media": card_info(c)})
 
     def card_reply(self, token):
         c = card_by_token(urllib.parse.unquote(token))
@@ -1863,7 +1905,7 @@ def card_info(c):
     """Состояние открытки для кабинета."""
     if not c:
         return None
-    return {"recorded": bool(c["file_id"]), "kind": c["kind"] or "",
+    return {"recorded": bool(c["file_id"]), "kind": c["kind"] or "", "processing": c["token"] in CARD_PROCESSING,
             "listen": card_url(c["token"]) + "&me=1" if c["file_id"] else "",
             "record_link": f"https://t.me/{BOT_USERNAME}?start=rec_{c['rec_code']}"}
 
@@ -1992,10 +2034,94 @@ def _ffmpeg_file(args, data, suffix, timeout=120):
     return None
 
 
+CARD_PROCESSING = set()
+
+
+def _ffmpeg_path(src, args, dst, timeout=300):
+    """ffmpeg с файла на файл: MP4 с iPhone нельзя читать из pipe, у него индекс в конце."""
+    if not shutil.which("ffmpeg"):
+        return False
+    try:
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", src, *args, dst],
+                           capture_output=True, timeout=timeout)
+        return r.returncode == 0 and os.path.exists(dst) and os.path.getsize(dst) > 0
+    except Exception as e:
+        log.warning("ffmpeg failed: %s", e)
+        return False
+
+
+def card_save_upload(c, data, ctype, kind):
+    """Сохранить запись с сайта и перекодировать в формат, который играет и iPhone, и Android.
+    Голос — сразу (секунды). Видео — в фоне, пока идёт перекодировка, открытка ждёт.
+    True — видео обрабатывается, False — готово, None — запись не читается."""
+    os.makedirs(MEDIA_DIR, exist_ok=True)
+    stamp = secrets.token_hex(4)
+    ext = {"audio/mp4": "m4a", "video/mp4": "mp4", "audio/ogg": "ogg", "audio/mpeg": "mp3"}.get(ctype, "webm")
+    raw = os.path.join(MEDIA_DIR, f"{c['token']}-raw{stamp}.{ext}")
+    with open(raw, "wb") as f:
+        f.write(data)
+
+    def finish(out):
+        prev = q("SELECT file_id FROM cards WHERE token=?", (c["token"],), one=True)
+        q("UPDATE cards SET file_id=?, kind=?, recorded=? WHERE token=?", ("local:" + out, kind, time.time(), c["token"]))
+        if prev and (prev["file_id"] or "").startswith("local:") and prev["file_id"][6:] != out:
+            _rm(prev["file_id"][6:])  # прошлая запись с сайта больше не нужна
+        _, o = get_order(c["order_id"])
+        notify_admins(f"🎙 {esc(c['order_id'])}: клиент записал поздравление на сайте ({kind})")
+        if c["client_chat"]:
+            send(c["client_chat"], esc(card_tx(o or {}, "saved")), [[(card_tx(o or {}, "listen"), "url:" + card_url(c["token"]) + "&me=1")]])
+
+    if kind == "voice":
+        out = os.path.join(MEDIA_DIR, f"{c['token']}-web{stamp}.m4a")
+        ok = _ffmpeg_path(raw, ["-vn", "-t", "62", "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart"], out, 120)
+        if not ok:
+            if ext != "m4a":  # без перекодировки годится только M4A (его пишет Safari)
+                _rm(raw)
+                return None
+            out = raw
+        else:
+            _rm(raw)
+        finish(out)
+        return False
+
+    out = os.path.join(MEDIA_DIR, f"{c['token']}-web{stamp}.mp4")
+
+    def work():
+        try:
+            ok = _ffmpeg_path(raw, ["-t", "62", "-vf", "scale='min(720,iw)':-2,format=yuv420p", "-c:v", "libx264",
+                                    "-preset", "veryfast", "-crf", "28", "-c:a", "aac", "-b:a", "96k",
+                                    "-movflags", "+faststart"], out, 600)
+            if ok:
+                _rm(raw)
+                finish(out)
+            else:
+                log.warning("видео-открытка %s не перекодировалась", c["order_id"])
+                _rm(raw)
+                notify_admins(f"⚠️ {esc(c['order_id'])}: видео-поздравление с сайта не удалось обработать")
+        finally:
+            CARD_PROCESSING.discard(c["token"])
+
+    CARD_PROCESSING.add(c["token"])
+    threading.Thread(target=work, daemon=True).start()
+    return True
+
+
+def _rm(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
 def card_media_file(c):
     """Путь к записи на диске (скачивает из Telegram при первом запросе) и её Content-Type.
     Голосовые Telegram (OGG/Opus) перекодируются в M4A, их играет и iPhone."""
     os.makedirs(MEDIA_DIR, exist_ok=True)
+    if c["file_id"].startswith("local:"):
+        path = c["file_id"][6:]
+        if not os.path.exists(path):
+            return None, None
+        return path, {"m4a": "audio/mp4", "mp4": "video/mp4", "ogg": "audio/ogg"}.get(path.rsplit(".", 1)[-1], "application/octet-stream")
     tag = hashlib.sha1(c["file_id"].encode()).hexdigest()[:10]
     voice = c["kind"] == "voice"
     for ext, ctype in ((("m4a", "audio/mp4"), ("ogg", "audio/ogg")) if voice else (("mp4", "video/mp4"),)):
