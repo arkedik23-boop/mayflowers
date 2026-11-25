@@ -12,8 +12,8 @@ const amd=u=>(Math.round(u*RATE/100)*100).toLocaleString(LOC[S.lang])+'\u00a0֏'
 const curNow=()=>S.cur||CUR_BY_LANG[S.lang]||'usd';
 const usd=u=>{const c=curNow();if(c==='rub')return (Math.round(u*RUB_RATE/10)*10).toLocaleString(LOC[S.lang])+'\u00a0₽';if(c==='amd')return (Math.round(u*RATE/100)*100).toLocaleString(LOC[S.lang])+'\u00a0֏';return '$'+Number(u).toLocaleString('en-US')};
 const usdRaw=u=>'$'+u;
-function load(){try{S.orders=JSON.parse(localStorage.getItem('may_orders')||'[]')}catch(e){S.orders=[]}try{const c=localStorage.getItem('may_cur');if(['rub','amd','usd'].includes(c))S.cur=c}catch(e){}}
-function save(){try{localStorage.setItem('may_orders',JSON.stringify(S.orders))}catch(e){}}
+function load(){try{S.orders=JSON.parse(localStorage.getItem('may_orders')||'[]')}catch(e){S.orders=[]}try{S.subs=JSON.parse(localStorage.getItem('may_subs')||'[]')}catch(e){S.subs=[]}try{const c=localStorage.getItem('may_cur');if(['rub','amd','usd'].includes(c))S.cur=c}catch(e){}}
+function save(){try{localStorage.setItem('may_orders',JSON.stringify(S.orders))}catch(e){}try{localStorage.setItem('may_subs',JSON.stringify(S.subs||[]))}catch(e){}}
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function fdate(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString(LOC[S.lang],{day:'numeric',month:'long',year:'numeric'})}
 function nextYear(s){const [y,m,d]=s.split('-').map(Number);return ymd(new Date(y+1,m-1,d))}
@@ -60,6 +60,7 @@ function shopView(){
   +'<div class="hero-foot"><span class="label">'+t('hero_vid')+'</span></div></section>'
   +promoStrip()
   +catalogBlock()
+  +subBanner()
   +'<section class="kind" id="kind"><div><p class="label">'+t('kind_k')+'</p><h2>'+t('kind_t')+'</h2></div><div><p>'+t('kind_d')+'</p><button class="btn'+(S.kind?' ink':'')+'" data-act="kind" aria-pressed="'+S.kind+'">'+(S.kind?t('kind_on'):t('kind_add'))+'</button></div></section>'
   +'<section class="ai" id="ai">'+aiInner()+'</section>'
   +vipBlock()
@@ -111,6 +112,12 @@ async function aiAsk(){const q=(S.ai.q||'').trim();if(!q){toast(t('ai_empty'));r
 (async()=>{try{if(window.claude&&typeof claude.use==='function')SAMPLE=await claude.use('sample')}catch(e){SAMPLE=null}})();
 
 /* «Маис лично»: премиум-вручение от $1000, только по заявке */
+/* Подписка: баннер на главной */
+const amdShow=a=>{const c=curNow();if(c==='amd')return a.toLocaleString(LOC[S.lang])+'\u00a0֏';if(c==='rub')return (Math.round(a/RATE*RUB_RATE/100)*100).toLocaleString(LOC[S.lang])+'\u00a0₽';return '$'+Math.round(a/RATE)};
+function subBanner(){return '<section class="subb" id="sub"><div class="subb-in"><span class="label">'+t('sb_k')+'</span><h2>'+t('sb_t')+'</h2><p class="lead">'+t('sb_d')+'</p>'
+  +'<div class="subb-to">'+['wife','mom','me'].map(k=>'<button type="button" class="chip" data-act="subnew" data-v="'+k+'">'+t('st_'+k)+'</button>').join('')+'</div>'
+  +'<div class="subb-row"><button type="button" class="btn primary" data-act="subnew">'+t('sb_btn')+'</button><span class="note">'+t('sb_perk')+' · '+t('su_budget').toLowerCase()+' '+t('f_from').toLowerCase()+' '+amdShow(SUB.budgets[0])+'</span></div></div>'
+  +'<div class="subb-cal" aria-hidden="true">'+Array.from({length:12},(_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+i);return '<i'+(i===0?' class="on"':'')+'><span class="fl">✿</span><b>'+d.toLocaleString(LOC[S.lang],{month:'short'}).replace('.','')+'</b></i>'}).join('')+'</div></section>'}
 function vipBlock(){const v=S.vip,li=t('vip_li');
   const media=VIP.video?'<video src="'+esc(VIP.video)+'" poster="vid/mais.jpg" controls playsinline preload="none"></video>':'<img src="vid/mais.jpg" alt="" loading="lazy" decoding="async"><span class="vip-soon">'+t('vip_vid')+'</span>';
   let act;

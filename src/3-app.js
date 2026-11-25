@@ -79,7 +79,65 @@ function cabinetView(){
     +'<button class="btn sm" data-act="reorder" data-v="'+esc(o.id)+'">'+t('reorder')+'</button></div>').join(''):emptyBox(t('cab_none'),'shop',t('back'));
   const rl=rem.length?rem.map(o=>'<div class="ord"><div class="h"><b>'+fdate(nextYear(o.date))+'</b><span class="label">'+t('o_'+o.occ)+'</span></div><div class="muted">'+esc(o.rec)+'</div><div class="acts"><a class="btn sm" target="_blank" rel="noopener" href="'+calLink(o)+'">'+t('to_cal')+'</a><button class="btn sm" data-act="reorder" data-v="'+esc(o.id)+'">'+t('reorder')+'</button></div></div>').join(''):'<p class="muted ord">'+t('cab_none')+'</p>';
   const bl=Object.values(book).length?Object.values(book).map(o=>'<div class="line"><span><b>'+esc(o.rec)+'</b><br><span class="muted">'+esc(o.addr)+'</span></span><span class="muted nums">'+esc(o.phone)+'</span></div>').join(''):'<p class="muted ord">'+t('cab_none')+'</p>';
-  return h2(t('cab_t'))+(TG?'':'<p class="note" style="margin:-16px 0 24px">'+t('cab_local')+'</p>')+bonusBlock(S.orders.map(o=>({usd:o.total,ts:o.ts,done:o.status===5})))+'<section class="blk"><span class="label">'+t('cab_orders')+'</span>'+ol+'</section><section class="blk"><span class="label">'+t('cab_rem')+'</span>'+rl+'</section><section class="blk"><span class="label">'+t('cab_book')+'</span>'+bl+'</section>'}
+  return h2(t('cab_t'))+(TG?'':'<p class="note" style="margin:-16px 0 24px">'+t('cab_local')+'</p>')+subsBlock()+bonusBlock(S.orders.map(o=>({usd:o.total,ts:o.ts,done:o.status===5})))+'<section class="blk"><span class="label">'+t('cab_orders')+'</span>'+ol+'</section><section class="blk"><span class="label">'+t('cab_rem')+'</span>'+rl+'</section><section class="blk"><span class="label">'+t('cab_book')+'</span>'+bl+'</section>'}
+/* ---------- Подписка на цветы ---------- */
+const SUB_F=['s_name','s_phone','s_addr','s_win','s_wish','s_card','s_yphone'],SUB_R=['s_to','s_freq','s_week','s_day','s_budget','s_flow','s_pay'];
+function subNew(to){S.sd=Object.assign({s_to:to||'mom',s_freq:'m',s_week:'1',s_day:'5',s_budget:String(SUB.budgets[1]),s_flow:'sur',s_pay:'m',s_win:WINDOWS[1]},to?{s_to:to}:{});
+  if(to==='me'&&S.draft&&S.draft.f_yphone)S.sd.s_phone=S.draft.f_yphone;menuClose(true);go('sub')}
+function subGrab(){const d=S.sd||(S.sd={});SUB_F.forEach(k=>{const e=$('#'+k);if(e)d[k]=e.value});SUB_R.forEach(k=>{const e=document.querySelector('input[name='+k+']:checked');if(e)d[k]=e.value});const a=$('#s_ask');if(a)d.s_ask=a.checked}
+function subNext(sb,from){const now=new Date((from||new Date()).getTime());now.setHours(0,0,0,0);
+  if(sb.freq==='m'){const w=+sb.week;let d=new Date(now.getFullYear(),now.getMonth(),(w-1)*7+1);if(new Date(d.getFullYear(),d.getMonth(),d.getDate()+6)<new Date(now.getTime()+2*864e5))d=new Date(now.getFullYear(),now.getMonth()+1,(w-1)*7+1);return {from:d,to:new Date(d.getFullYear(),d.getMonth(),d.getDate()+6)}}
+  const wd=+sb.day,d=new Date(now.getTime()+2*864e5);while(((d.getDay()+6)%7)+1!==wd)d.setDate(d.getDate()+1);return {from:d,to:d}}
+function subWhenText(sb,n){const f=x=>x.toLocaleDateString(LOC[S.lang],{day:'numeric',month:'long'}),w=n||subNext(sb);
+  return (+w.from===+w.to?f(w.from)+' ('+t('wdays')[+sb.day-1]+')':w.from.getDate()+'–'+f(w.to))+(sb.win?', '+sb.win:'')}
+function subCount(d){const pm=SUB.perMonth[d.s_freq]||1;return d.s_pay==='m'?1:pm*(+d.s_pay)}
+function subView(){if(!S.sd)subNew('');const d=S.sd,L=T[S.lang];
+  const chip=(nm,v,lab)=>'<label class="rchip"><input type="radio" name="'+nm+'" value="'+v+'"'+(String(d[nm])===String(v)?' checked':'')+'><span>'+lab+'</span></label>';
+  const grp=(lab,html)=>'<section class="blk"><span class="label">'+lab+'</span>'+html+'</section>';
+  const rg=(lab,html)=>'<div class="rchips" role="radiogroup" aria-label="'+lab+'">'+html+'</div>';
+  const sb={freq:d.s_freq,week:d.s_week,day:d.s_day,win:d.s_win},b=+d.s_budget,cnt=subCount(d),disc=SUB.packs[d.s_pay]||0,now=Math.round(b*cnt*(100-disc)/100);
+  return '<h2 style="font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;margin-bottom:8px">'+t('su_t')+'</h2><p class="lead" style="margin-bottom:24px">'+t('sb_perk')+'</p>'
+  +grp(t('su_to'),rg(t('su_to'),['wife','mom','me','other'].map(k=>chip('s_to',k,t('st_'+k))).join(''))
+    +'<div class="fields" style="margin-top:16px">'+(d.s_to==='me'?'':fld('s_name',t('su_name'),d.s_name||'','autocomplete="off"'))+fld('s_phone',t('su_phone'),d.s_phone||'','type="tel" inputmode="tel" placeholder="+374" aria-required="true"')
+    +'<div class="full">'+fld('s_addr',t('su_addr'),d.s_addr||'','autocomplete="street-address" aria-required="true"')+'</div></div>')
+  +grp(t('su_freq'),rg(t('su_freq'),['m','2w','w'].map(k=>chip('s_freq',k,t('fq_'+k))).join('')))
+  +grp(t('su_when'),(d.s_freq==='m'?rg(t('su_when'),['1','2','3','4'].map(k=>chip('s_week',k,t('wk_'+k))).join('')):rg(t('su_day'),L.wdays.map((x,i)=>chip('s_day',String(i+1),x)).join('')))
+    +'<div class="fields" style="margin-top:16px"><label>'+t('su_win')+'<select id="s_win">'+WINDOWS.map(w=>'<option'+(d.s_win===w?' selected':'')+'>'+w+'</option>').join('')+'</select></label></div>'
+    +'<p class="note" style="margin-top:8px">'+t('su_first')+': <b>'+esc(subWhenText(sb))+'</b></p>')
+  +grp(t('su_budget'),rg(t('su_budget'),SUB.budgets.map(a=>chip('s_budget',a,amdShow(a))).join('')))
+  +grp(t('su_flow'),rg(t('su_flow'),chip('s_flow','sur',t('fl_sur'))+chip('s_flow','wish',t('fl_wish')))
+    +(d.s_flow==='wish'?'<div class="fields" style="margin-top:16px"><label class="full"><span class="sr">'+t('fl_wish')+'</span><textarea id="s_wish" rows="2" placeholder="'+esc(t('su_wish_ph'))+'">'+esc(d.s_wish||'')+'</textarea></label></div>':''))
+  +grp(t('su_card'),'<div class="fields"><label class="full"><span class="sr">'+t('su_card')+'</span><textarea id="s_card" rows="2" placeholder="'+esc(t('su_card_ph'))+'">'+esc(d.s_card||'')+'</textarea></label></div>'
+    +'<label class="check" style="margin-top:8px"><input type="checkbox" id="s_ask"'+(d.s_ask?' checked':'')+'>'+t('su_ask')+'</label>')
+  +grp(t('co_you'),'<div class="fields">'+fld('s_yphone',t('co_yphone'),d.s_yphone||(S.draft&&S.draft.f_yphone)||'','type="tel" inputmode="tel" autocomplete="tel" aria-required="true"')+'</div>')
+  +grp(t('su_pay'),rg(t('su_pay'),['m','3','6','12'].map(k=>chip('s_pay',k,t('sp_'+k))).join(''))
+    +'<p class="note" style="margin-top:8px">'+(d.s_pay==='m'?t('sp_m_d'):t('sp_pack_d'))+' '+t('sp_card')+'</p>')
+  +'<section class="blk"><div class="line"><span>'+t('su_budget')+'</span><b class="nums">'+amdShow(b)+'</b></div>'
+    +'<div class="line"><span>'+t('co_deliv')+'</span><b>0</b></div>'
+    +(d.s_pay==='m'?'':'<div class="line"><span>'+cnt+' '+t('su_count')+' · −'+disc+'%</span><b class="nums"><s class="muted">'+amdShow(b*cnt)+'</s></b></div>')
+    +'<div class="line t"><span>'+t('su_now')+'</span><span class="tot nums">'+amdShow(now)+'</span></div>'
+    +(curNow()==='rub'?'<p class="note" style="margin-top:8px">'+t('rub_note')+'</p>':'')
+    +'<button class="btn primary" style="width:100%;margin-top:16px" data-act="subgo">'+t('su_go')+' · '+amdShow(now)+'</button></section>'}
+function subPlace(){subGrab();const d=S.sd;let bad=0;
+  ['s_phone','s_addr','s_yphone'].forEach(k=>{const e=$('#'+k),m=document.querySelector('[data-e='+k+']'),ok=e&&String(e.value).trim();if(e)e.setAttribute('aria-invalid',ok?'false':'true');if(m)m.textContent=ok?'':t('req');if(!ok)bad++});
+  if(bad){const f=document.querySelector('[aria-invalid=true]');if(f)f.focus();return}
+  const cnt=subCount(d),disc=SUB.packs[d.s_pay]||0;
+  const sb={id:'SB-'+(100+(S.subs||[]).length+1),to:d.s_to,name:d.s_to==='me'?'':(d.s_name||'').trim(),phone:d.s_phone.trim(),addr:d.s_addr.trim(),freq:d.s_freq,week:d.s_week,day:d.s_day,win:d.s_win,budget:+d.s_budget,
+    flow:d.s_flow,wish:d.s_flow==='wish'?(d.s_wish||'').trim():'',card:(d.s_card||'').trim(),ask:!!d.s_ask,yphone:d.s_yphone.trim(),pay:d.s_pay,paid:d.s_pay==='m'?0:cnt,disc,state:'active',skip:false,ts:Date.now()};
+  (S.subs=S.subs||[]).unshift(sb);save();S.sd=null;go('cabinet');toast(t('su_ok'))}
+function subsBlock(){const subs=S.subs||[];
+  if(!subs.length)return '<section class="blk subs"><span class="label">'+t('cab_subs')+'</span><p class="muted">'+t('sb_none')+'</p><div class="acts"><button type="button" class="btn sm primary" data-act="subnew">'+t('sb_btn')+'</button></div></section>';
+  return '<section class="blk subs"><span class="label">'+t('cab_subs')+'</span>'+subs.map(sb=>{const p=sb.state==='paused',n=subNext(sb),n2=sb.skip?subNext(sb,new Date(n.to.getTime()+864e5*(sb.freq==='m'?20:sb.freq==='2w'?13:6))):n;
+    return '<div class="ord"><div class="h"><b>'+esc(t('st_'+sb.to))+(sb.name?' · '+esc(sb.name):'')+'</b><span class="label"'+(p?'':' style="color:var(--ink)"')+'>'+(p?t('sb_paused'):t('sb_active'))+'</span></div>'
+    +'<div class="muted">'+t('fq_'+sb.freq)+' · <span class="nums">'+amdShow(sb.budget)+'</span> · '+(sb.flow==='sur'?t('fl_sur'):esc(sb.wish||t('fl_wish')))+'<br>'+esc(sb.addr)+(sb.paid?'<br>'+t('sb_paid').replace('{n}',sb.paid):'')+'</div>'
+    +(p?'':'<p style="margin-top:8px">'+t('sb_next')+': <b>'+esc(subWhenText(sb,n2))+'</b>'+(sb.skip?'<br><span class="note">'+t('sb_skipped')+'</span>':'')+'</p>')
+    +(sb.cq?'<p style="margin-top:8px">'+t('sb_cancel_q')+'</p><div class="acts"><button type="button" class="btn sm primary" data-act="subcancel" data-v="'+sb.id+'">'+t('sb_yes')+'</button><button type="button" class="btn sm" data-act="subcno" data-v="'+sb.id+'">'+t('sb_no')+'</button></div>'
+      :'<div class="acts">'+(p?'':'<button type="button" class="btn sm" data-act="subskip" data-v="'+sb.id+'">'+(sb.skip?t('sb_unskip'):t('sb_skip'))+'</button>')
+      +'<button type="button" class="btn sm" data-act="subpause" data-v="'+sb.id+'">'+(p?t('sb_resume'):t('sb_pause'))+'</button><button type="button" class="btn sm" data-act="subcq" data-v="'+sb.id+'">'+t('sb_cancel')+'</button></div>')+'</div>'}).join('')
+    +'<div class="acts"><button type="button" class="btn sm" data-act="subnew">'+t('sb_new')+'</button></div></section>'}
+function subAct(a,id){const subs=S.subs||[],i=subs.findIndex(x=>x.id===id);if(i<0)return;const sb=subs[i];
+  if(a==='subskip')sb.skip=!sb.skip;else if(a==='subpause'){sb.state=sb.state==='paused'?'active':'paused';sb.skip=false}else if(a==='subcq')sb.cq=true;else if(a==='subcno')sb.cq=false;else if(a==='subcancel')subs.splice(i,1);
+  save();const y=window.scrollY;render();window.scrollTo(0,y)}
 const BTN=['b_acc','b_bui','b_pho','b_cou','b_don'];
 function studioView(){
   const o=S.orders.find(x=>x.id===S.last)||S.orders[0];
@@ -94,7 +152,7 @@ function render(){
   document.body.classList.toggle('tg',S.mode==='tg');
   $('#cartBtn').textContent=L.cart+' · '+cartCount();
   if(S._tl!==S.lang){S._tl=S.lang;$('#tickHost').innerHTML=marquee()}
-  const v={shop:shopView,checkout:checkoutView,cabinet:cabinetView,studio:studioView,done:doneView}[S.view];
+  const v={shop:shopView,checkout:checkoutView,cabinet:cabinetView,studio:studioView,done:doneView,sub:subView}[S.view];
   $('#main').innerHTML='<div class="view">'+v()+'</div>';
   crLayout();crCenter();reelMount();fFill();
   chrome();
@@ -161,6 +219,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data
   else if(a==='promo'){if(promoOn())add(PROMO.id,true);promoClose()}
   else if(a==='promoopen')promoOpen();
   else if(a==='cardadd')cardAdd(v);
+  else if(a==='subnew')subNew(v||'');
+  else if(a==='subgo')subPlace();
+  else if(a==='subskip'||a==='subpause'||a==='subcancel'||a==='subcq'||a==='subcno')subAct(a,v);
   else if(a==='recopen')recOpen(v,b.dataset.k);
   else if(a==='recstart')recStart();
   else if(a==='recstop'){if(RC&&RC.rec&&RC.rec.state==='recording')RC.rec.stop()}
@@ -180,6 +241,7 @@ document.addEventListener('input',e=>{if(e.target.id==='ai_q')S.ai.q=e.target.va
     const l=$('#fPriceLbl');if(l)l.textContent=priceLabel()||usd(0)+' – '+usd(mx);clearTimeout(S._ft);S._ft=setTimeout(()=>catPaint(),120)}});
 document.addEventListener('change',e=>{if(e.target.id==='f_sort'){S.f.sort=e.target.value;catPaint()}});
 document.addEventListener('keydown',e=>{if(e.target.id==='ai_q'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();aiAsk()}});
+document.addEventListener('change',e=>{if(S.view==='sub'&&e.target.name&&e.target.type==='radio'){subGrab();const y=window.scrollY;render();window.scrollTo(0,y)}});
 document.addEventListener('change',e=>{if(S.view!=='checkout')return;const id=e.target.id,nm=e.target.name;if(nm==='card'||nm==='to'||nm==='when'||id==='f_win'||id==='f_media'){grab();const y=window.scrollY;render();window.scrollTo(0,y)}});
 load();render();promoAuto();
 if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){new MutationObserver(()=>document.querySelectorAll('animateTransform').forEach(x=>x.remove())).observe(document.body,{childList:true,subtree:true});document.querySelectorAll('animateTransform').forEach(x=>x.remove())}
@@ -376,7 +438,7 @@ function bonusBlock(list){const now=Date.now(),spent=list.filter(x=>now-x.ts<30*
 
 /* Burger menu: every section of the shop in one place */
 function menuInner(){const L=T[S.lang];
-  const items=[['catalog','mn_cat'],promoOn()?['promo','mn_promo']:null,['ai','mn_ai'],['kind','mn_kind'],['vip','mn_vip'],['cabinet','mn_cab'],['bonus','mn_bonus']].filter(Boolean);
+  const items=[['catalog','mn_cat'],promoOn()?['promo','mn_promo']:null,['ai','mn_ai'],['kind','mn_kind'],['vip','mn_vip'],['sub','mn_sub'],['cabinet','mn_cab'],['bonus','mn_bonus']].filter(Boolean);
   return '<div class="menu-h"><span class="label">'+L.mn_open+'</span><button class="burger" type="button" data-act="menuclose" aria-label="'+L.mn_close+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>'
   +'<ul class="menu-list">'+items.map(([k,l])=>'<li><button type="button" data-nav="'+k+'">'+L[l]+'</button></li>').join('')
   +'<li><button type="button" data-act="mgr">'+L.mn_contact+'</button></li></ul>'
@@ -391,6 +453,7 @@ function menuClose(silent){if(!MENU_OPEN)return;MENU_OPEN=false;const w=$('#menu
 function navTo(k){if(k==='promo')return promoOpen();const anchors={catalog:'catalog',ai:'ai',kind:'kind',vip:'vip'};
   if(anchors[k]){if(S.view!=='shop')go('shop');const el=document.getElementById(anchors[k]);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});const f=el.querySelector('h2,h1');if(f){f.setAttribute('tabindex','-1');f.focus({preventScroll:true})}}return}
   if(k==='cabinet')return go('cabinet');
+  if(k==='sub')return subNew('');
   if(k==='bonus'){go('cabinet');setTimeout(()=>{const el=document.querySelector('.bonus');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}}
 document.addEventListener('keydown',e=>{if(RC){if(e.key==='Escape'){e.preventDefault();recClose()}else if(e.key==='Tab'){const f=[...$('#recHost').querySelectorAll('.pm button:not([disabled]),.pm audio,.pm video[controls]')];if(!f.length)return;const a=f[0],z=f[f.length-1];
     if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}return}
