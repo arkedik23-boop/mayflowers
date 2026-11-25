@@ -619,6 +619,8 @@ const LEVELS=[{min:0,cb:5},{min:100000,cb:7},{min:200000,cb:10},{min:300000,cb:1
 /* Букет дня: id букета из каталога и цена акции в USD, действует до конца дня.
    on:false — акция выключена везде (всплывающее окно, полоска над каталогом, пункт меню). */
 const PROMO={id:9,usd:38,on:true};
+// Подписки: на живом сайте выключены, пока нет сервера (build.py --preview включает их для превью)
+const SUBS={on:false};
 /* «Маис лично»: цена от, в долларах; video — путь к ролику, когда Маис его запишет (пусто = фото-заглушка) */
 /* Подписка на цветы. Бюджеты в драмах; доставка по подписке бесплатная; скидки за предоплату пакетом. */
 const SUB={budgets:[15000,25000,40000],packs:{m:0,3:5,6:10,12:15},perMonth:{m:1,'2w':2,w:4}};
@@ -739,7 +741,7 @@ async function aiAsk(){const q=(S.ai.q||'').trim();if(!q){toast(t('ai_empty'));r
 /* «Маис лично»: премиум-вручение от $1000, только по заявке */
 /* Подписка: баннер на главной */
 const amdShow=a=>{const c=curNow();if(c==='amd')return a.toLocaleString(LOC[S.lang])+'\u00a0֏';if(c==='rub')return (Math.round(a/RATE*RUB_RATE/100)*100).toLocaleString(LOC[S.lang])+'\u00a0₽';return '$'+Math.round(a/RATE)};
-function subBanner(){return '<section class="subb" id="sub"><div class="subb-in"><span class="label">'+t('sb_k')+'</span><h2>'+t('sb_t')+'</h2><p class="lead">'+t('sb_d')+'</p>'
+function subBanner(){if(!SUBS.on)return '';return '<section class="subb" id="sub"><div class="subb-in"><span class="label">'+t('sb_k')+'</span><h2>'+t('sb_t')+'</h2><p class="lead">'+t('sb_d')+'</p>'
   +'<div class="subb-to">'+['wife','mom','me'].map(k=>'<button type="button" class="chip" data-act="subnew" data-v="'+k+'">'+t('st_'+k)+'</button>').join('')+'</div>'
   +'<div class="subb-row"><button type="button" class="btn primary" data-act="subnew">'+t('sb_btn')+'</button><span class="note">'+t('sb_perk')+' · '+t('su_budget').toLowerCase()+' '+t('f_from').toLowerCase()+' '+amdShow(SUB.budgets[0])+'</span></div></div>'
   +'<div class="subb-cal" aria-hidden="true">'+Array.from({length:12},(_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+i);return '<i'+(i===0?' class="on"':'')+'><span class="fl">✿</span><b>'+d.toLocaleString(LOC[S.lang],{month:'short'}).replace('.','')+'</b></i>'}).join('')+'</div></section>'}
@@ -940,7 +942,7 @@ function subPlace(){subGrab();const d=S.sd;let bad=0;
   const sb={id:'SB-'+(100+(S.subs||[]).length+1),to:d.s_to,name:d.s_to==='me'?'':(d.s_name||'').trim(),phone:d.s_phone.trim(),addr:d.s_addr.trim(),freq:d.s_freq,mode:d.s_mode,dom:d.s_dom,week:d.s_week,day:d.s_day,win:d.s_win,budget:+d.s_budget,
     flow:d.s_flow,wish:d.s_flow==='wish'?(d.s_wish||'').trim():'',card:(d.s_card||'').trim(),ask:!!d.s_ask,yphone:d.s_yphone.trim(),pay:d.s_pay,paid:d.s_pay==='m'?0:cnt,disc,state:'active',skip:false,ts:Date.now()};
   (S.subs=S.subs||[]).unshift(sb);save();S.sd=null;go('cabinet');toast(t('su_ok'))}
-function subsBlock(){const subs=S.subs||[];
+function subsBlock(){if(!SUBS.on)return '';const subs=S.subs||[];
   if(!subs.length)return '<section class="blk subs"><span class="label">'+t('cab_subs')+'</span><p class="muted">'+t('sb_none')+'</p><div class="acts"><button type="button" class="btn sm primary" data-act="subnew">'+t('sb_btn')+'</button></div></section>';
   return '<section class="blk subs"><span class="label">'+t('cab_subs')+'</span>'+subs.map(sb=>{const p=sb.state==='paused',n=subNext(sb),n2=sb.skip?subNext(sb,new Date(n.to.getTime()+864e5*(sb.freq==='m'?20:sb.freq==='2w'?13:6))):n;
     return '<div class="ord"><div class="h"><b>'+esc(t('st_'+sb.to))+(sb.name?' · '+esc(sb.name):'')+'</b><span class="label"'+(p?'':' style="color:var(--ink)"')+'>'+(p?t('sb_paused'):t('sb_active'))+'</span></div>'
@@ -1256,7 +1258,7 @@ function bonusBlock(list){const now=Date.now(),spent=list.filter(x=>now-x.ts<30*
 
 /* Burger menu: every section of the shop in one place */
 function menuInner(){const L=T[S.lang];
-  const items=[['catalog','mn_cat'],promoOn()?['promo','mn_promo']:null,['ai','mn_ai'],['kind','mn_kind'],['vip','mn_vip'],['sub','mn_sub'],['cabinet','mn_cab'],['bonus','mn_bonus']].filter(Boolean);
+  const items=[['catalog','mn_cat'],promoOn()?['promo','mn_promo']:null,['ai','mn_ai'],['kind','mn_kind'],['vip','mn_vip'],SUBS.on?['sub','mn_sub']:null,['cabinet','mn_cab'],['bonus','mn_bonus']].filter(Boolean);
   return '<div class="menu-h"><span class="label">'+L.mn_open+'</span><button class="burger" type="button" data-act="menuclose" aria-label="'+L.mn_close+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>'
   +'<ul class="menu-list">'+items.map(([k,l])=>'<li><button type="button" data-nav="'+k+'">'+L[l]+'</button></li>').join('')
   +'<li><button type="button" data-act="mgr">'+L.mn_contact+'</button></li></ul>'
@@ -1271,7 +1273,7 @@ function menuClose(silent){if(!MENU_OPEN)return;MENU_OPEN=false;const w=$('#menu
 function navTo(k){if(k==='promo')return promoOpen();const anchors={catalog:'catalog',ai:'ai',kind:'kind',vip:'vip'};
   if(anchors[k]){if(S.view!=='shop')go('shop');const el=document.getElementById(anchors[k]);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});const f=el.querySelector('h2,h1');if(f){f.setAttribute('tabindex','-1');f.focus({preventScroll:true})}}return}
   if(k==='cabinet')return go('cabinet');
-  if(k==='sub')return subNew('');
+  if(k==='sub'&&SUBS.on)return subNew('');
   if(k==='bonus'){go('cabinet');setTimeout(()=>{const el=document.querySelector('.bonus');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}}
 document.addEventListener('keydown',e=>{if(RC){if(e.key==='Escape'){e.preventDefault();recClose()}else if(e.key==='Tab'){const f=[...$('#recHost').querySelectorAll('.pm button:not([disabled]),.pm audio,.pm video[controls]')];if(!f.length)return;const a=f[0],z=f[f.length-1];
     if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}return}

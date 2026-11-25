@@ -26,7 +26,8 @@ CARD_SKELETON = ('<!doctype html><html lang="ru"><head><meta charset="utf-8">'
 def build_preview():
     """Страница для артефакта claude.ai: оболочку (doctype, head, charset) артефакт добавляет сам."""
     r = lambda n: (SRC / n).read_text(encoding="utf-8")
-    return (r("styles.html") + r("body.html") + "<script>\n" + r("1-data.js") + r("2-shop.js") + r("3-app.js") + "</script>\n")
+    js = r("1-data.js").replace("const SUBS={on:false};", "const SUBS={on:true};") + r("2-shop.js") + r("3-app.js")
+    return (r("styles.html") + r("body.html") + "<script>\n" + js + "</script>\n")
 
 def build_card(demo=False):
     """card.html: страница аудио/видео-открытки по QR-коду (card.html?c=ТОКЕН)."""

@@ -114,7 +114,7 @@ async function aiAsk(){const q=(S.ai.q||'').trim();if(!q){toast(t('ai_empty'));r
 /* «Маис лично»: премиум-вручение от $1000, только по заявке */
 /* Подписка: баннер на главной */
 const amdShow=a=>{const c=curNow();if(c==='amd')return a.toLocaleString(LOC[S.lang])+'\u00a0֏';if(c==='rub')return (Math.round(a/RATE*RUB_RATE/100)*100).toLocaleString(LOC[S.lang])+'\u00a0₽';return '$'+Math.round(a/RATE)};
-function subBanner(){return '<section class="subb" id="sub"><div class="subb-in"><span class="label">'+t('sb_k')+'</span><h2>'+t('sb_t')+'</h2><p class="lead">'+t('sb_d')+'</p>'
+function subBanner(){if(!SUBS.on)return '';return '<section class="subb" id="sub"><div class="subb-in"><span class="label">'+t('sb_k')+'</span><h2>'+t('sb_t')+'</h2><p class="lead">'+t('sb_d')+'</p>'
   +'<div class="subb-to">'+['wife','mom','me'].map(k=>'<button type="button" class="chip" data-act="subnew" data-v="'+k+'">'+t('st_'+k)+'</button>').join('')+'</div>'
   +'<div class="subb-row"><button type="button" class="btn primary" data-act="subnew">'+t('sb_btn')+'</button><span class="note">'+t('sb_perk')+' · '+t('su_budget').toLowerCase()+' '+t('f_from').toLowerCase()+' '+amdShow(SUB.budgets[0])+'</span></div></div>'
   +'<div class="subb-cal" aria-hidden="true">'+Array.from({length:12},(_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+i);return '<i'+(i===0?' class="on"':'')+'><span class="fl">✿</span><b>'+d.toLocaleString(LOC[S.lang],{month:'short'}).replace('.','')+'</b></i>'}).join('')+'</div></section>'}

@@ -126,7 +126,7 @@ function subPlace(){subGrab();const d=S.sd;let bad=0;
   const sb={id:'SB-'+(100+(S.subs||[]).length+1),to:d.s_to,name:d.s_to==='me'?'':(d.s_name||'').trim(),phone:d.s_phone.trim(),addr:d.s_addr.trim(),freq:d.s_freq,mode:d.s_mode,dom:d.s_dom,week:d.s_week,day:d.s_day,win:d.s_win,budget:+d.s_budget,
     flow:d.s_flow,wish:d.s_flow==='wish'?(d.s_wish||'').trim():'',card:(d.s_card||'').trim(),ask:!!d.s_ask,yphone:d.s_yphone.trim(),pay:d.s_pay,paid:d.s_pay==='m'?0:cnt,disc,state:'active',skip:false,ts:Date.now()};
   (S.subs=S.subs||[]).unshift(sb);save();S.sd=null;go('cabinet');toast(t('su_ok'))}
-function subsBlock(){const subs=S.subs||[];
+function subsBlock(){if(!SUBS.on)return '';const subs=S.subs||[];
   if(!subs.length)return '<section class="blk subs"><span class="label">'+t('cab_subs')+'</span><p class="muted">'+t('sb_none')+'</p><div class="acts"><button type="button" class="btn sm primary" data-act="subnew">'+t('sb_btn')+'</button></div></section>';
   return '<section class="blk subs"><span class="label">'+t('cab_subs')+'</span>'+subs.map(sb=>{const p=sb.state==='paused',n=subNext(sb),n2=sb.skip?subNext(sb,new Date(n.to.getTime()+864e5*(sb.freq==='m'?20:sb.freq==='2w'?13:6))):n;
     return '<div class="ord"><div class="h"><b>'+esc(t('st_'+sb.to))+(sb.name?' · '+esc(sb.name):'')+'</b><span class="label"'+(p?'':' style="color:var(--ink)"')+'>'+(p?t('sb_paused'):t('sb_active'))+'</span></div>'
@@ -442,7 +442,7 @@ function bonusBlock(list){const now=Date.now(),spent=list.filter(x=>now-x.ts<30*
 
 /* Burger menu: every section of the shop in one place */
 function menuInner(){const L=T[S.lang];
-  const items=[['catalog','mn_cat'],promoOn()?['promo','mn_promo']:null,['ai','mn_ai'],['kind','mn_kind'],['vip','mn_vip'],['sub','mn_sub'],['cabinet','mn_cab'],['bonus','mn_bonus']].filter(Boolean);
+  const items=[['catalog','mn_cat'],promoOn()?['promo','mn_promo']:null,['ai','mn_ai'],['kind','mn_kind'],['vip','mn_vip'],SUBS.on?['sub','mn_sub']:null,['cabinet','mn_cab'],['bonus','mn_bonus']].filter(Boolean);
   return '<div class="menu-h"><span class="label">'+L.mn_open+'</span><button class="burger" type="button" data-act="menuclose" aria-label="'+L.mn_close+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>'
   +'<ul class="menu-list">'+items.map(([k,l])=>'<li><button type="button" data-nav="'+k+'">'+L[l]+'</button></li>').join('')
   +'<li><button type="button" data-act="mgr">'+L.mn_contact+'</button></li></ul>'
@@ -457,7 +457,7 @@ function menuClose(silent){if(!MENU_OPEN)return;MENU_OPEN=false;const w=$('#menu
 function navTo(k){if(k==='promo')return promoOpen();const anchors={catalog:'catalog',ai:'ai',kind:'kind',vip:'vip'};
   if(anchors[k]){if(S.view!=='shop')go('shop');const el=document.getElementById(anchors[k]);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});const f=el.querySelector('h2,h1');if(f){f.setAttribute('tabindex','-1');f.focus({preventScroll:true})}}return}
   if(k==='cabinet')return go('cabinet');
-  if(k==='sub')return subNew('');
+  if(k==='sub'&&SUBS.on)return subNew('');
   if(k==='bonus'){go('cabinet');setTimeout(()=>{const el=document.querySelector('.bonus');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60)}}
 document.addEventListener('keydown',e=>{if(RC){if(e.key==='Escape'){e.preventDefault();recClose()}else if(e.key==='Tab'){const f=[...$('#recHost').querySelectorAll('.pm button:not([disabled]),.pm audio,.pm video[controls]')];if(!f.length)return;const a=f[0],z=f[f.length-1];
     if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}return}
