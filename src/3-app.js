@@ -81,27 +81,28 @@ function cabinetView(){
   const bl=Object.values(book).length?Object.values(book).map(o=>'<div class="line"><span><b>'+esc(o.rec)+'</b><br><span class="muted">'+esc(o.addr)+'</span></span><span class="muted nums">'+esc(o.phone)+'</span></div>').join(''):'<p class="muted ord">'+t('cab_none')+'</p>';
   return h2(t('cab_t'))+(TG?'':'<p class="note" style="margin:-16px 0 24px">'+t('cab_local')+'</p>')+subsBlock()+bonusBlock(S.orders.map(o=>({usd:o.total,ts:o.ts,done:o.status===5})))+'<section class="blk"><span class="label">'+t('cab_orders')+'</span>'+ol+'</section><section class="blk"><span class="label">'+t('cab_rem')+'</span>'+rl+'</section><section class="blk"><span class="label">'+t('cab_book')+'</span>'+bl+'</section>'}
 /* ---------- Подписка на цветы ---------- */
-const SUB_F=['s_name','s_phone','s_addr','s_win','s_wish','s_card','s_yphone'],SUB_R=['s_to','s_freq','s_week','s_day','s_budget','s_flow','s_pay'];
-function subNew(to){S.sd=Object.assign({s_to:to||'mom',s_freq:'m',s_week:'1',s_day:'5',s_budget:String(SUB.budgets[1]),s_flow:'sur',s_pay:'m',s_win:WINDOWS[1]},to?{s_to:to}:{});
+const SUB_F=['s_name','s_phone','s_addr','s_win','s_dom','s_wish','s_card','s_yphone'],SUB_R=['s_to','s_freq','s_mode','s_week','s_day','s_budget','s_flow','s_pay'];
+function subNew(to){S.sd=Object.assign({s_to:to||'mom',s_freq:'m',s_mode:'range',s_dom:'15',s_week:'1',s_day:'5',s_budget:String(SUB.budgets[1]),s_flow:'sur',s_pay:'m',s_win:WINDOWS[1]},to?{s_to:to}:{});
   if(to==='me'&&S.draft&&S.draft.f_yphone)S.sd.s_phone=S.draft.f_yphone;menuClose(true);go('sub')}
 function subGrab(){const d=S.sd||(S.sd={});SUB_F.forEach(k=>{const e=$('#'+k);if(e)d[k]=e.value});SUB_R.forEach(k=>{const e=document.querySelector('input[name='+k+']:checked');if(e)d[k]=e.value});const a=$('#s_ask');if(a)d.s_ask=a.checked}
 function subNext(sb,from){const now=new Date((from||new Date()).getTime());now.setHours(0,0,0,0);
+  if(sb.freq==='m'&&sb.mode==='date'){const dm=+sb.dom||1;let d=new Date(now.getFullYear(),now.getMonth(),dm);if(d<new Date(now.getTime()+2*864e5))d=new Date(now.getFullYear(),now.getMonth()+1,dm);return {from:d,to:d,date:1}}
   if(sb.freq==='m'){const w=+sb.week;let d=new Date(now.getFullYear(),now.getMonth(),(w-1)*7+1);if(new Date(d.getFullYear(),d.getMonth(),d.getDate()+6)<new Date(now.getTime()+2*864e5))d=new Date(now.getFullYear(),now.getMonth()+1,(w-1)*7+1);return {from:d,to:new Date(d.getFullYear(),d.getMonth(),d.getDate()+6)}}
   const wd=+sb.day,d=new Date(now.getTime()+2*864e5);while(((d.getDay()+6)%7)+1!==wd)d.setDate(d.getDate()+1);return {from:d,to:d}}
 function subWhenText(sb,n){const f=x=>x.toLocaleDateString(LOC[S.lang],{day:'numeric',month:'long'}),w=n||subNext(sb);
-  return (+w.from===+w.to?f(w.from)+' ('+t('wdays')[+sb.day-1]+')':w.from.getDate()+'–'+f(w.to))+(sb.win?', '+sb.win:'')}
+  return (w.date?f(w.from):+w.from===+w.to?f(w.from)+' ('+t('wdays')[+sb.day-1]+')':w.from.getDate()+'–'+f(w.to))+(sb.win?', '+sb.win:'')}
 function subCount(d){const pm=SUB.perMonth[d.s_freq]||1;return d.s_pay==='m'?1:pm*(+d.s_pay)}
 function subView(){if(!S.sd)subNew('');const d=S.sd,L=T[S.lang];
   const chip=(nm,v,lab)=>'<label class="rchip"><input type="radio" name="'+nm+'" value="'+v+'"'+(String(d[nm])===String(v)?' checked':'')+'><span>'+lab+'</span></label>';
   const grp=(lab,html)=>'<section class="blk"><span class="label">'+lab+'</span>'+html+'</section>';
   const rg=(lab,html)=>'<div class="rchips" role="radiogroup" aria-label="'+lab+'">'+html+'</div>';
-  const sb={freq:d.s_freq,week:d.s_week,day:d.s_day,win:d.s_win},b=+d.s_budget,cnt=subCount(d),disc=SUB.packs[d.s_pay]||0,now=Math.round(b*cnt*(100-disc)/100);
+  const sb={freq:d.s_freq,mode:d.s_mode,dom:d.s_dom,week:d.s_week,day:d.s_day,win:d.s_win},b=+d.s_budget,cnt=subCount(d),disc=SUB.packs[d.s_pay]||0,now=Math.round(b*cnt*(100-disc)/100);
   return '<h2 style="font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;margin-bottom:8px">'+t('su_t')+'</h2><p class="lead" style="margin-bottom:24px">'+t('sb_perk')+'</p>'
   +grp(t('su_to'),rg(t('su_to'),['wife','mom','me','other'].map(k=>chip('s_to',k,t('st_'+k))).join(''))
     +'<div class="fields" style="margin-top:16px">'+(d.s_to==='me'?'':fld('s_name',t('su_name'),d.s_name||'','autocomplete="off"'))+fld('s_phone',t('su_phone'),d.s_phone||'','type="tel" inputmode="tel" placeholder="+374" aria-required="true"')
     +'<div class="full">'+fld('s_addr',t('su_addr'),d.s_addr||'','autocomplete="street-address" aria-required="true"')+'</div></div>')
   +grp(t('su_freq'),rg(t('su_freq'),['m','2w','w'].map(k=>chip('s_freq',k,t('fq_'+k))).join('')))
-  +grp(t('su_when'),(d.s_freq==='m'?rg(t('su_when'),['1','2','3','4'].map(k=>chip('s_week',k,t('wk_'+k))).join('')):rg(t('su_day'),L.wdays.map((x,i)=>chip('s_day',String(i+1),x)).join('')))
+  +grp(t('su_when'),(d.s_freq==='m'?'<div class="seg" role="radiogroup" aria-label="'+t('su_when')+'">'+chip('s_mode','range',t('sm_range'))+chip('s_mode','date',t('sm_date'))+'</div>'+(d.s_mode==='date'?'<div class="fields" style="margin-top:16px"><label>'+t('su_dom')+'<select id="s_dom">'+Array.from({length:28},(_,i)=>i+1).map(n=>'<option value="'+n+'"'+(String(d.s_dom)===String(n)?' selected':'')+'>'+t('dom').replace('{n}',n)+'</option>').join('')+'</select></label></div>':rg(t('su_when'),['1','2','3','4'].map(k=>chip('s_week',k,t('wk_'+k))).join(''))):rg(t('su_day'),L.wdays.map((x,i)=>chip('s_day',String(i+1),x)).join('')))
     +'<div class="fields" style="margin-top:16px"><label>'+t('su_win')+'<select id="s_win">'+WINDOWS.map(w=>'<option'+(d.s_win===w?' selected':'')+'>'+w+'</option>').join('')+'</select></label></div>'
     +'<p class="note" style="margin-top:8px">'+t('su_first')+': <b>'+esc(subWhenText(sb))+'</b></p>')
   +grp(t('su_budget'),rg(t('su_budget'),SUB.budgets.map(a=>chip('s_budget',a,amdShow(a))).join('')))
@@ -122,7 +123,7 @@ function subPlace(){subGrab();const d=S.sd;let bad=0;
   ['s_phone','s_addr','s_yphone'].forEach(k=>{const e=$('#'+k),m=document.querySelector('[data-e='+k+']'),ok=e&&String(e.value).trim();if(e)e.setAttribute('aria-invalid',ok?'false':'true');if(m)m.textContent=ok?'':t('req');if(!ok)bad++});
   if(bad){const f=document.querySelector('[aria-invalid=true]');if(f)f.focus();return}
   const cnt=subCount(d),disc=SUB.packs[d.s_pay]||0;
-  const sb={id:'SB-'+(100+(S.subs||[]).length+1),to:d.s_to,name:d.s_to==='me'?'':(d.s_name||'').trim(),phone:d.s_phone.trim(),addr:d.s_addr.trim(),freq:d.s_freq,week:d.s_week,day:d.s_day,win:d.s_win,budget:+d.s_budget,
+  const sb={id:'SB-'+(100+(S.subs||[]).length+1),to:d.s_to,name:d.s_to==='me'?'':(d.s_name||'').trim(),phone:d.s_phone.trim(),addr:d.s_addr.trim(),freq:d.s_freq,mode:d.s_mode,dom:d.s_dom,week:d.s_week,day:d.s_day,win:d.s_win,budget:+d.s_budget,
     flow:d.s_flow,wish:d.s_flow==='wish'?(d.s_wish||'').trim():'',card:(d.s_card||'').trim(),ask:!!d.s_ask,yphone:d.s_yphone.trim(),pay:d.s_pay,paid:d.s_pay==='m'?0:cnt,disc,state:'active',skip:false,ts:Date.now()};
   (S.subs=S.subs||[]).unshift(sb);save();S.sd=null;go('cabinet');toast(t('su_ok'))}
 function subsBlock(){const subs=S.subs||[];
@@ -219,6 +220,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data
   else if(a==='promo'){if(promoOn())add(PROMO.id,true);promoClose()}
   else if(a==='promoopen')promoOpen();
   else if(a==='cardadd')cardAdd(v);
+  else if(a==='bnlv'){S.bnSel=+v;const y=window.scrollY;render();window.scrollTo(0,y);const b=document.querySelector('.bn-tick[data-v="'+v+'"]');if(b)b.focus({preventScroll:true})}
   else if(a==='subnew')subNew(v||'');
   else if(a==='subgo')subPlace();
   else if(a==='subskip'||a==='subpause'||a==='subcancel'||a==='subcq'||a==='subcno')subAct(a,v);
@@ -241,7 +243,7 @@ document.addEventListener('input',e=>{if(e.target.id==='ai_q')S.ai.q=e.target.va
     const l=$('#fPriceLbl');if(l)l.textContent=priceLabel()||usd(0)+' – '+usd(mx);clearTimeout(S._ft);S._ft=setTimeout(()=>catPaint(),120)}});
 document.addEventListener('change',e=>{if(e.target.id==='f_sort'){S.f.sort=e.target.value;catPaint()}});
 document.addEventListener('keydown',e=>{if(e.target.id==='ai_q'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();aiAsk()}});
-document.addEventListener('change',e=>{if(S.view==='sub'&&e.target.name&&e.target.type==='radio'){subGrab();const y=window.scrollY;render();window.scrollTo(0,y)}});
+document.addEventListener('change',e=>{if(S.view==='sub'&&((e.target.name&&e.target.type==='radio')||e.target.id==='s_dom'||e.target.id==='s_win')){subGrab();const y=window.scrollY;render();window.scrollTo(0,y)}});
 document.addEventListener('change',e=>{if(S.view!=='checkout')return;const id=e.target.id,nm=e.target.name;if(nm==='card'||nm==='to'||nm==='when'||id==='f_win'||id==='f_media'){grab();const y=window.scrollY;render();window.scrollTo(0,y)}});
 load();render();promoAuto();
 if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){new MutationObserver(()=>document.querySelectorAll('animateTransform').forEach(x=>x.remove())).observe(document.body,{childList:true,subtree:true});document.querySelectorAll('animateTransform').forEach(x=>x.remove())}
@@ -427,14 +429,16 @@ function bonusBlock(list){const now=Date.now(),spent=list.filter(x=>now-x.ts<30*
   let li=0;LEVELS.forEach((l,i)=>{if(spent>=l.min)li=i});const cur=LEVELS[li],nx=LEVELS[li+1],names=t('lv'),perks=t('lv_perk');
   const bal=list.filter(x=>x.done).reduce((a,x)=>a+Math.round(x.usd*RATE*cur.cb/100),0);
   const pct=nx?Math.max(0,Math.min(100,Math.round((spent-cur.min)/(nx.min-cur.min)*100))):100;
+  const top=LEVELS[LEVELS.length-1].min,pos=l=>Math.round(l.min/top*100),fill=Math.min(100,Math.round(spent/top*100));
+  const sel=S.bnSel!=null&&LEVELS[S.bnSel]?S.bnSel:li,sl=LEVELS[sel];
   return '<section class="blk bonus" id="bonus"><span class="label">'+t('bn_t')+'</span><div class="bn-top">'
   +'<div><span class="note">'+t('bn_bal')+'</span><b class="nums bn-bal">'+amdN(bal)+'</b></div>'
-  +'<div><span class="note">'+t('bn_lvl')+'</span><b>'+esc(names[li])+' · '+cur.cb+'% '+t('bn_cb')+'</b></div>'
-  +'<div><span class="note">'+t('bn_spent')+'</span><b class="nums">'+amdN(spent)+'</b></div></div>'
-  +'<div class="bn-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'" aria-label="'+esc(t('bn_lvl'))+'"><i style="width:'+pct+'%"></i></div>'
-  +'<p class="note" style="margin-top:8px">'+(nx?t('bn_next').replace('{l}',names[li+1]).replace('{s}',amdN(nx.min-spent)):t('bn_max'))+'</p>'
-  +'<ol class="bn-lv">'+LEVELS.map((l,i)=>'<li'+(i===li?' aria-current="true"':'')+'><b>'+esc(names[i])+'</b><span class="nums">'+(l.min?'≥ '+amdN(l.min):'0\u00a0֏')+'</span><span>'+l.cb+'% '+t('bn_cb')+'</span>'+(perks[i]?'<span class="note">'+esc(perks[i])+'</span>':'')+'</li>').join('')+'</ol>'
-  +'<p class="note">'+t('bn_how')+'</p></section>'}
+  +'<div><span class="note">'+t('bn_lvl')+'</span><b>'+esc(names[li])+' · '+cur.cb+'% '+t('bn_cb')+'</b></div></div>'
+  +'<div class="bn-scale"><div class="bn-bar" role="progressbar" aria-valuemin="0" aria-valuemax="'+top+'" aria-valuenow="'+Math.round(spent)+'" aria-valuetext="'+esc(amdN(spent))+'" aria-label="'+esc(t('bn_spent'))+'"><i style="width:'+fill+'%"></i></div>'
+  +LEVELS.map((l,i)=>'<button type="button" class="bn-tick'+(i<=li?' on':'')+(i===li?' cur':'')+(i===0?' first':'')+(i===LEVELS.length-1?' last':'')+'" style="left:'+pos(l)+'%" data-act="bnlv" data-v="'+i+'" aria-pressed="'+(i===sel)+'" aria-controls="bnInfo"><i></i><b>'+esc(names[i])+'</b><small class="nums">'+(l.min?Math.round(l.min/1000)+'k':'0')+'</small></button>').join('')+'</div>'
+  +'<p class="bn-info" id="bnInfo" aria-live="polite"><b>'+esc(names[sel])+'</b> · '+(sl.min?t('f_from').toLowerCase()+' '+amdN(sl.min)+' · ':'')+sl.cb+'% '+t('bn_cb')+(perks[sel]?' · '+esc(perks[sel]):'')+'</p>'
+  +'<p class="note bn-next">'+t('bn_spent')+': <b class="nums">'+amdN(spent)+'</b> · '+(nx?t('bn_next').replace('{l}',names[li+1]).replace('{s}',amdN(nx.min-spent)):t('bn_max'))+'</p>'
+  +'<details class="bn-more"><summary>'+t('bn_howt')+'</summary><p class="note">'+t('bn_how')+'</p></details></section>'}
 
 /* Burger menu: every section of the shop in one place */
 function menuInner(){const L=T[S.lang];

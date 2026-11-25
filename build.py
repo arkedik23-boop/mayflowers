@@ -1,5 +1,6 @@
 """Собирает index.html из src/. Запуск: python build.py
-Демо-версия без отправки заказов: python build.py --demo > demo.html"""
+Демо-версия без отправки заказов: python build.py --demo > demo.html
+Превью для артефакта Claude: python build.py --preview ПУТЬ.html (без <head>, без сервера; рядом нужны img/ и vid/)"""
 import sys, pathlib
 ROOT = pathlib.Path(__file__).parent
 SRC = ROOT / "src"
@@ -22,6 +23,11 @@ CARD_SKELETON = ('<!doctype html><html lang="ru"><head><meta charset="utf-8">'
     '<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}'
     'body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>')
 
+def build_preview():
+    """Страница для артефакта claude.ai: оболочку (doctype, head, charset) артефакт добавляет сам."""
+    r = lambda n: (SRC / n).read_text(encoding="utf-8")
+    return (r("styles.html") + r("body.html") + "<script>\n" + r("1-data.js") + r("2-shop.js") + r("3-app.js") + "</script>\n")
+
 def build_card(demo=False):
     """card.html: страница аудио/видео-открытки по QR-коду (card.html?c=ТОКЕН)."""
     src = (SRC / "card.html").read_text(encoding="utf-8")
@@ -32,7 +38,11 @@ def build_card(demo=False):
     return CARD_SKELETON + head + "</head><body>" + body + "</body></html>\n"
 
 if __name__ == "__main__":
-    if "--demo" in sys.argv:
+    if "--preview" in sys.argv:
+        out = pathlib.Path(sys.argv[sys.argv.index("--preview") + 1])
+        out.write_text(build_preview(), encoding="utf-8")
+        print("превью:", out)
+    elif "--demo" in sys.argv:
         sys.stdout.write(build(demo=True))
     else:
         (ROOT / "index.html").write_text(build(), encoding="utf-8")
