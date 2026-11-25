@@ -74,7 +74,7 @@ function cabinetView(){
   if(TG&&ORDER_API.url)return srvCabinet();
   const rem=S.orders.filter(o=>o.remind),book={};S.orders.forEach(o=>{if(!o.kind)book[o.rec+o.addr]=o});
   const ol=S.orders.length?S.orders.map(o=>'<div class="ord"><div class="h"><b class="nums">'+esc(o.id)+' · '+usd(o.total)+'</b><span class="label" style="'+(o.status===5?'color:var(--ink)':'')+'">'+T[S.lang].st[o.status]+'</span></div>'
-    +'<div class="muted">'+esc(itemsText(o))+'<br>'+esc(o.rec)+' · '+esc(o.addr)+'<br>'+esc(whenText(o))+(o.kind?'<br>'+t('cab_kind'):'')+'</div><div class="prog" aria-hidden="true">'+[0,1,2,3,4,5].map(i=>'<i class="'+(i<=o.status?'on':'')+'"></i>').join('')+'</div>'
+    +'<div class="muted">'+esc(itemsText(o))+'<br>'+esc(o.rec)+' · '+esc(o.addr)+'<br>'+esc(whenText(o))+(o.kind?'<br>'+t('cab_kind'):'')+'</div>'+localCardBox(o)+'<div class="prog" aria-hidden="true">'+[0,1,2,3,4,5].map(i=>'<i class="'+(i<=o.status?'on':'')+'"></i>').join('')+'</div>'
     +'<button class="btn sm" data-act="reorder" data-v="'+esc(o.id)+'">'+t('reorder')+'</button></div>').join(''):emptyBox(t('cab_none'),'shop',t('back'));
   const rl=rem.length?rem.map(o=>'<div class="ord"><div class="h"><b>'+fdate(nextYear(o.date))+'</b><span class="label">'+t('o_'+o.occ)+'</span></div><div class="muted">'+esc(o.rec)+'</div><div class="acts"><a class="btn sm" target="_blank" rel="noopener" href="'+calLink(o)+'">'+t('to_cal')+'</a><button class="btn sm" data-act="reorder" data-v="'+esc(o.id)+'">'+t('reorder')+'</button></div></div>').join(''):'<p class="muted ord">'+t('cab_none')+'</p>';
   const bl=Object.values(book).length?Object.values(book).map(o=>'<div class="line"><span><b>'+esc(o.rec)+'</b><br><span class="muted">'+esc(o.addr)+'</span></span><span class="muted nums">'+esc(o.phone)+'</span></div>').join(''):'<p class="muted ord">'+t('cab_none')+'</p>';
@@ -159,6 +159,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act],[data
   else if(a==='kind'){S.kind=!S.kind;render();if(S.kind){toast(t('kind_toast'));const c=$('#catalog');if(c)c.scrollIntoView({behavior:'smooth'})}}
   else if(a==='promo'){if(promoOn())add(PROMO.id,true);promoClose()}
   else if(a==='promoopen')promoOpen();
+  else if(a==='cardadd')cardAdd(v);
+  else if(a==='cardrec')cardRec(v);
   else if(a==='promoclose')promoClose();
   else if(a==='tbcart'){menuClose(true);cartCount()?go('checkout'):navTo('catalog')}
   else if(a==='reorder'){const o=S.orders.find(x=>x.id===v);if(o){S.cart=o.items.map(i=>({id:i.id,q:i.q}));S.draft={f_rec:o.rec,f_phone:o.phone,f_addr:o.addr,f_occ:o.occ,f_you:o.you,f_yphone:o.yphone};go('checkout')}}
@@ -199,7 +201,7 @@ function sendToBot(o){if(!ORDER_API.url)return;
     wrapping:{paper:R.papers[o.paper||0],ribbon:R.ribbons[o.ribbon||0]},kindness:!!o.kind,kind_hands:o.kind?{sign:o.sign,public:!!o.pub}:null,comment:com,payment:{method:o.pay,status:'demo'},lang:S.lang,remind:!!o.remind};
   fetch(ORDER_API.url.replace(/\/$/,'')+'/api/orders',{method:'POST',headers:TG?{'Content-Type':'application/json','X-Telegram-Init-Data':TG.initData}:{'Content-Type':'application/json','X-Intake-Key':ORDER_API.key},body:JSON.stringify(body)})
     .then(r=>{if(!r.ok)throw r.status;if(TG)try{TG.HapticFeedback.notificationOccurred('success')}catch(e){}return r.json().catch(()=>({}))})
-    .then(j=>{let ch=false;if(j&&j.record_link&&/^https:\/\/t\.me\//.test(j.record_link)){S.recLink=j.record_link;ch=true}if(j&&j.remind_link&&/^https:\/\/t\.me\//.test(j.remind_link)){S.remLink=j.remind_link;ch=true}if(ch&&S.view==='done')render()}).catch(()=>toast(t('send_fail')))}
+    .then(j=>{let ch=false;if(j&&j.manage){o.srv=String(j.id||o.id);o.manage=String(j.manage);save()}if(j&&j.record_link&&/^https:\/\/t\.me\//.test(j.record_link)){S.recLink=j.record_link;ch=true}if(j&&j.remind_link&&/^https:\/\/t\.me\//.test(j.remind_link)){S.remLink=j.remind_link;ch=true}if(ch&&S.view==='done')render()}).catch(()=>toast(t('send_fail')))}
 
 /* Telegram mini app: same page inside Telegram, with Telegram's own main and back buttons */
 function tgSync(){if(!TG)return;
@@ -225,7 +227,7 @@ if(!(window.Telegram&&window.Telegram.WebApp)&&/tgWebAppData/.test(location.hash
 const ST_IDX={new:0,offered:0,unassigned:0,accepted:1,built:3,courier:4,delivered:5};
 function meApi(path,opt){opt=opt||{};return fetch(ORDER_API.url.replace(/\/$/,'')+path,Object.assign({},opt,{headers:Object.assign({'Content-Type':'application/json','X-Telegram-Init-Data':TG.initData},opt.headers||{})}))
   .then(r=>{if(!r.ok)throw r.status;return r})}
-function meLoad(){S.me={status:'loading',data:S.me&&S.me.data};if(S.view==='cabinet')render();
+function meLoad(){Object.keys(MSTATE).forEach(k=>delete MSTATE[k]);S.me={status:'loading',data:S.me&&S.me.data};if(S.view==='cabinet')render();
   meApi('/api/me').then(r=>r.json()).then(d=>{S.me={status:'ok',data:d};if(S.view==='cabinet')render()})
     .catch(()=>{S.me={status:'err',data:S.me.data};if(S.view==='cabinet')render()})}
 function srvWhen(d){d=d||{};return (d.date?fdate(d.date):'')+', '+(d.window==='asap'?t('win_asap'):d.window==='exact'?(d.exact_time||''):(d.window||''))}
@@ -240,12 +242,51 @@ function srvCabinet(){
     return '<div class="ord"><div class="h"><b class="nums">'+esc(o.id)+' · '+usd(o.total_usd||0)+'</b><span class="label" style="'+(o.status==='delivered'?'color:var(--ink)':'')+'">'+esc(stLabel(o.status))+'</span></div>'
     +'<div class="muted">'+esc(o.items.map(x=>{const p=PRODUCTS.find(p=>p.id===+x.sku);return (p?pn(p):x.name)+' × '+x.qty}).join(', '))+'<br>'+(o.kindness?t('cab_kind'):esc(o.recipient.name||'')+' · '+esc(o.recipient.address||''))+'<br>'+esc(srvWhen(o.delivery))+'</div>'
     +(o.has_photo?'<figure class="ord-photo"><img data-photo="'+esc(o.id)+'" alt="'+esc(t('cab_photo'))+'" width="360" height="450"><figcaption class="note">'+t('cab_photo')+'</figcaption></figure>':'')
+    +cardBox(o.id,{late:o.status==='delivered'||cancel,media:o.media})
     +(cancel?'':'<div class="prog" aria-hidden="true">'+[0,1,2,3,4,5].map(k=>'<i class="'+(k<=i?'on':'')+'"></i>').join('')+'</div>')
     +'<button class="btn sm" data-act="srvre" data-v="'+esc(o.id)+'">'+t('reorder')+'</button></div>'}).join(''):emptyBox(t('cab_none'),'shop',t('back'));
   const rl=d.reminders.length?d.reminders.map(r=>'<div class="ord"><div class="h"><b>'+fdate(r.target)+'</b></div><div class="muted">'+esc(r.label)+'</div><div class="acts"><button class="btn sm" data-act="shop">'+t('reorder')+'</button><button class="btn sm" data-act="remdel" data-v="'+r.id+'">'+t('rem_del')+'</button></div></div>').join(''):'<p class="muted ord">'+t('rem_none')+'</p>';
   const bl=d.recipients.length?d.recipients.map(p=>'<div class="line"><span><b>'+esc(p.name||'')+'</b><br><span class="muted">'+esc(p.address||'')+'</span></span><span class="muted nums">'+esc(p.phone||'')+'</span></div>').join(''):'<p class="muted ord">'+t('cab_none')+'</p>';
   setTimeout(mePhotos,0);
   return head+bonusBlock(d.orders.filter(o=>o.status!=='cancelled').map(o=>({usd:o.total_usd||0,ts:(o.created||0)*1000,done:o.status==='delivered'})))+'<section class="blk"><span class="label">'+t('cab_orders')+'</span>'+ol+'</section><section class="blk"><span class="label">'+t('cab_rem')+'</span>'+rl+'</section><section class="blk"><span class="label">'+t('cab_book')+'</span>'+bl+'</section>'}
+/* Аудио/видео-открытка в кабинете: добавить к заказу, записать, перезаписать, послушать */
+const MSTATE={},CARD_DEMO='https://claude.ai/artifact/QRyuqpd8UznKN9FojvbewJ';
+const tgLink=u=>/^https:\/\/t\.me\//.test(u||'')?u:'';
+function cardBox(id,st){if(!st)return '';const m=st.media,lt=st.late;
+  if(lt&&!(m&&m.recorded))return '';
+  let h='<div class="cm"><span class="label">'+t('cm_t')+'</span>';
+  if(st.loading)return h+'<p class="muted">'+t('cab_loading')+'</p></div>';
+  if(m&&m.recorded){h+='<p>'+t('cm_done')+(m.kind?' · '+t('cmk_'+m.kind):'')+'</p><div class="acts">'
+    +(m.listen?'<a class="btn sm" target="_blank" rel="noopener" href="'+esc(m.listen)+'">'+t('cm_listen')+'</a>':'')
+    +(lt?'':cardRecBtn(id,m,t('cm_redo'),''))+'</div>'+(lt?'<p class="note">'+t('cm_late')+'</p>':'')}
+  else if(m){h+='<p>'+t('cm_wait')+'</p><div class="acts">'+cardRecBtn(id,m,t('cm_rec'),' primary')+'</div><p class="note">'+t('cm_hint')+'</p>'}
+  else h+='<p class="muted">'+t('cm_none')+'</p><div class="acts"><button type="button" class="btn sm primary" data-act="cardadd" data-v="'+esc(id)+'"'+(st.busy?' disabled':'')+'>'+t('cm_add')+'</button></div>';
+  return h+'</div>'}
+function cardRecBtn(id,m,label,cls){const u=tgLink(m.record_link);
+  if(TG||!u)return '<button type="button" class="btn sm'+cls+'" data-act="cardrec" data-v="'+esc(id)+'">'+label+'</button>';
+  return '<a class="btn sm'+cls+'" target="_blank" rel="noopener" href="'+esc(u)+'">'+label+'</a>'}
+function localCardBox(o){
+  if(!ORDER_API.url){const d=o.mdemo||(o.card==='media'?{record_link:''}:null);return cardBox(o.id,{media:d&&{recorded:!!d.recorded,kind:d.kind||'',listen:d.recorded?CARD_DEMO:'',record_link:''}})}
+  if(!o.manage)return '';
+  const s=MSTATE[o.id];if(!s){MSTATE[o.id]={loading:true};setTimeout(()=>cardState(o),0);return cardBox(o.id,{loading:true})}
+  if(s.err)return '';return cardBox(o.id,s)}
+function cardApi(path,o){const body={order_id:o.srv||o.id};let h={'Content-Type':'application/json'};
+  if(TG)h['X-Telegram-Init-Data']=TG.initData;else body.manage=o.manage;
+  return fetch(ORDER_API.url.replace(/\/$/,'')+path,{method:'POST',headers:h,body:JSON.stringify(body)}).then(r=>r.json().then(j=>{if(!r.ok)throw j.error||r.status;return j}))}
+function cardState(o){cardApi('/api/card/state',o).then(j=>{MSTATE[o.id]={media:j.media,late:j.status==='delivered'||j.status==='cancelled'};if(S.view==='cabinet')render()})
+  .catch(()=>{MSTATE[o.id]={err:true};if(S.view==='cabinet')render()})}
+function cardFind(id){const so=S.me&&S.me.data&&S.me.data.orders.find(x=>x.id===id);return so?{srv:so,local:null}:{srv:null,local:S.orders.find(x=>x.id===id)}}
+function cardOpen(u){if(!u)return;if(TG){try{TG.openTelegramLink(u)}catch(e){location.href=u}}else{const w=window.open(u,'_blank','noopener');if(!w)location.href=u}}
+function cardAdd(id){const {srv,local}=cardFind(id);
+  if(!ORDER_API.url&&local){local.mdemo={recorded:false};local.card='media';save();render();toast(t('cm_demo'));return}
+  const tgt=srv?{id:srv.id,srv:srv.id}:local;if(!tgt)return;
+  const keep=srv?null:MSTATE[id];if(!srv)MSTATE[id]=Object.assign({},keep,{busy:true});render();
+  cardApi('/api/card/add',tgt).then(j=>{if(srv){srv.media=j.media;srv.card={type:'media'}}else MSTATE[id]={media:j.media,late:false};render();
+      if(TG){toast(t('cm_go'));cardOpen(tgLink(j.media&&j.media.record_link))}})
+    .catch(e=>{if(!srv)MSTATE[id]=keep;if(e==='late'){if(srv)srv.status='delivered';else MSTATE[id]={media:null,late:true}}render();toast(e==='late'?t('cm_late'):t('cm_err'))})}
+function cardRec(id){const {srv,local}=cardFind(id);
+  if(!ORDER_API.url&&local){local.mdemo={recorded:true,kind:'voice'};save();render();toast(t('cm_demo'));return}
+  const m=srv?srv.media:(MSTATE[id]||{}).media;cardOpen(tgLink(m&&m.record_link))}
 const PHOTO_URL={};
 function mePhotos(){document.querySelectorAll('img[data-photo]').forEach(img=>{const id=img.dataset.photo;
   if(PHOTO_URL[id]){img.src=PHOTO_URL[id];return}

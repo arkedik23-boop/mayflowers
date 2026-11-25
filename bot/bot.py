@@ -209,6 +209,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS reminders(
             id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id INTEGER, order_id TEXT, target TEXT,
             label TEXT, lang TEXT, sent7 INTEGER DEFAULT 0, sent1 INTEGER DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS order_codes(order_id TEXT PRIMARY KEY, code TEXT);
         """)
         cols = [r[1] for r in db.execute("PRAGMA table_info(orders)")]
         if "client_chat" not in cols:
@@ -1483,6 +1484,9 @@ class Intake(BaseHTTPRequestHandler):
         if p.startswith("/api/card/") and p.endswith("/reply"):
             self.card_reply(p[len("/api/card/"):-len("/reply")])
             return
+        if p in ("/api/card/add", "/api/card/state"):
+            self.card_manage(p.endswith("/add"))
+            return
         if p == "/api/ai":
             self.ai_request()
             return
@@ -1540,6 +1544,11 @@ class Intake(BaseHTTPRequestHandler):
             resp["record_link"] = f"https://t.me/{BOT_USERNAME}?start=rec_{c['rec_code']}"
         if o.get("remind") and not client_chat:
             resp["remind_link"] = remind_link_for(oid)
+        if not client_chat:
+            # секрет заказа для кабинета на сайте: по нему клиент потом добавляет или меняет открытку
+            code = secrets.token_urlsafe(12)
+            q("INSERT OR REPLACE INTO order_codes(order_id,code) VALUES(?,?)", (oid, code))
+            resp["manage"] = code
         self.reply(200, resp)
 
     # ---- умный помощник для сайта и мини-апки: подбор букетов (ключ Claude живёт только здесь)
@@ -1692,6 +1701,42 @@ class Intake(BaseHTTPRequestHandler):
                     return
                 left -= len(chunk)
 
+    def card_manage(self, add):
+        """Кабинет: узнать состояние открытки (state) или добавить её к заказу (add).
+        Доступ: подпись Telegram владельца заказа или секрет заказа с сайта (manage)."""
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(min(n, 4096)) or b"{}") if n else {}
+            oid = str(body.get("order_id") or "")[:40]
+        except (ValueError, TypeError, AttributeError):
+            self.reply(400, {"ok": False, "error": "bad json"})
+            return
+        ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
+        if not hits_allowed("cardm:" + ip, 30, 600):
+            self.reply(429, {"ok": False, "error": "слишком часто"})
+            return
+        row = q("SELECT status, client_chat FROM orders WHERE id=?", (oid,), one=True) if oid else None
+        uid = None
+        if self.headers.get("X-Telegram-Init-Data"):
+            uid = self.tg_user()
+            if uid is None:
+                return
+            ok = bool(row) and row["client_chat"] == uid
+        else:
+            code = q("SELECT code FROM order_codes WHERE order_id=?", (oid,), one=True) if oid else None
+            ok = bool(row and code) and secrets.compare_digest(str(body.get("manage") or ""), code["code"])
+        if not ok:
+            self.reply(404, {"ok": False, "error": "not_found"})
+            return
+        if add:
+            err, c = card_add(oid, uid)
+            if err:
+                self.reply(409 if err == "late" else 404, {"ok": False, "error": err})
+                return
+        else:
+            c = q("SELECT * FROM cards WHERE order_id=?", (oid,), one=True)
+        self.reply(200, {"ok": True, "status": row["status"], "media": card_info(c)})
+
     def card_reply(self, token):
         c = card_by_token(urllib.parse.unquote(token))
         if not c:
@@ -1783,6 +1828,44 @@ def make_card(order_id, o, client_chat):
         q("INSERT OR REPLACE INTO waiting_card(chat_id,token) VALUES(?,?)", (client_chat, token))
         send(client_chat, esc(card_tx(o, "ask")))
     notify_admins(f"🎙 {esc(order_id)}: заказ с аудио/видео-открыткой\n{esc(card_url(token))}")
+
+
+def card_add(order_id, client_chat=None):
+    """Аудио/видео-открытка к уже оформленному заказу (из личного кабинета).
+    Возвращает (код ошибки или None, данные карточки)."""
+    row, o = get_order(order_id)
+    if not row:
+        return "not_found", None
+    if row["status"] in ("delivered", "cancelled"):
+        return "late", None
+    c = q("SELECT * FROM cards WHERE order_id=?", (order_id,), one=True)
+    if not c:
+        token, rec = secrets.token_urlsafe(16), secrets.token_urlsafe(9)
+        q("INSERT OR IGNORE INTO cards(token,order_id,rec_code,client_chat,created) VALUES(?,?,?,?,?)",
+          (token, order_id, rec, client_chat or row["client_chat"], time.time()))
+        card = dict(o.get("card") or {})
+        old = card.get("text") if card.get("type") == "text" else ""
+        o["card"] = {"type": "media", "text": old or "🎙 Аудио/видео-открытка (добавлена из кабинета)"}
+        q("UPDATE orders SET payload=? WHERE id=?", (json.dumps(o, ensure_ascii=False), order_id))
+        notify_admins(f"🎙 {esc(order_id)}: клиент добавил аудио/видео-открытку из кабинета\n{esc(card_url(token))}")
+        if row["studio_id"] and row["status"] not in ("new", "offered", "unassigned"):
+            st = q("SELECT chat_id FROM studios WHERE id=?", (row["studio_id"],), one=True)
+            if st:
+                send(st["chat_id"], f"🎙 К заказу {esc(order_id)} клиент добавил аудио/видео-поздравление. "
+                                    "Распечатайте QR-код ниже и вложите в букет."
+                                    + (f"\n💌 Текст открытки остаётся: «{esc(old)}»" if old else ""))
+                send_card_qr(st["chat_id"], order_id)
+        c = q("SELECT * FROM cards WHERE order_id=?", (order_id,), one=True)
+    return None, c
+
+
+def card_info(c):
+    """Состояние открытки для кабинета."""
+    if not c:
+        return None
+    return {"recorded": bool(c["file_id"]), "kind": c["kind"] or "",
+            "listen": card_url(c["token"]) + "&me=1" if c["file_id"] else "",
+            "record_link": f"https://t.me/{BOT_USERNAME}?start=rec_{c['rec_code']}"}
 
 
 def card_start(chat, m, rec):
@@ -2198,6 +2281,7 @@ def cabinet(uid):
             "recipient": {"name": rec.get("name"), "address": rec.get("address"), "phone": rec.get("phone")},
             "occasion": o.get("occasion"), "card": o.get("card") or {}, "kindness": bool(o.get("kindness")),
             "has_photo": bool(r["photo"]),
+            "media": card_info(q("SELECT * FROM cards WHERE order_id=?", (r["id"],), one=True)),
         })
         key = (rec.get("name"), rec.get("phone"), rec.get("address"))
         if rec.get("phone") and key not in people:
